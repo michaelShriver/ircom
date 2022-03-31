@@ -165,7 +165,7 @@ int main(int argc, char **argv)
         //free(input);
 
         /* Walk the message buffer, and write messages to the terminal */
-        do
+        while (buffer_read_ptr->next != NULL)
         {
             if (buffer_read_ptr->isread == 0)
             {
@@ -177,7 +177,7 @@ int main(int argc, char **argv)
             {
                 buffer_read_ptr = buffer_read_ptr->next;
             }
-        } while (buffer_read_ptr->next != NULL);
+        }
 
         if (buffer_read_ptr->isread == 0)
         {
@@ -210,8 +210,6 @@ int main(int argc, char **argv)
             {
                 tcsetattr(0, TCSANOW, &termstate);
 
-                // printf("message_buffer->curr: %p, buffer_read_ptr: %p\n", message_buffer->curr, buffer_read_ptr);
-
                 char *input;
                 show_prompt(ctx);
                 input = get_input();
@@ -223,6 +221,7 @@ int main(int argc, char **argv)
         }
     }
 
+    free(newbuf);
 	return 0;
 }
 
@@ -263,13 +262,14 @@ bufline *add_to_buffer(bufline *msgbuffer, char *cmsg)
 /* Send a message to the channel, and add it to my buffer */
 void send_message(irc_session_t *s, irc_ctx_t ctx, char *message)
 {
-    int size = sizeof(char) * (strlen(ctx.nick) + strlen(message) + 3 + 1);
+    int size = sizeof(char) * (strlen(ctx.nick) + strlen(message) + 3);
     char *bufferline = (char *)malloc(size);
 
     snprintf(bufferline, size, "[%s] %s", ctx.nick, message);
     irc_cmd_msg(s, ctx.channel, message);
     message_buffer->curr = add_to_buffer(message_buffer->curr, bufferline);
     message_buffer->curr->isread = 1;
+    free(bufferline);
 }
 
 /* Run the event handling loop in it's own thread */
@@ -491,6 +491,7 @@ int kbhit()
 
 void reset_termstate()
 {
+    free(message_buffer);
     tcsetattr(0, TCSANOW, &termstate);
 }
 
@@ -506,9 +507,7 @@ char * get_input()
     size_t buffer_size = 0;
     ssize_t read_size;
 
-
     read_size = getline(&input, &buffer_size, stdin);
-    // printf("Got %zd bytes, buffer size is %zd bytes\n", read_size, buffer_size);
 
     return input;
 }
@@ -518,11 +517,11 @@ void rewind_buffer(bufline *buffer_read_ptr)
     while (buffer_read_ptr->prev != NULL)
         buffer_read_ptr = buffer_read_ptr->prev;
 
-    do
+    while (buffer_read_ptr->next != NULL)
     {
         printf("%s\r\n", buffer_read_ptr->message);
         buffer_read_ptr = buffer_read_ptr->next;
-    } while (buffer_read_ptr->next != NULL);
+    }
     printf("%s\r\n", buffer_read_ptr->message);
 }
 
@@ -530,10 +529,10 @@ void print_message_buffer(bufptr *msgbuf)
 {
     bufline *buffer = msgbuf->head;
 
-    do
+    while (buffer->next != NULL)
     {
         printf("%s\r\n", buffer->message);
         buffer = buffer->next;
-    } while (buffer->next != NULL);
+    }
     printf("%s\r\n", buffer->message);
 }
