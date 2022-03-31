@@ -71,6 +71,7 @@ int main(int argc, char **argv)
     irc_callbacks_t callbacks;
     irc_ctx_t ctx;
     irc_session_t * sess;
+    //irc_option_set(sess, LIBIRC_OPTION_STRIPNICKS);
     unsigned short port = 6667;
     char *input = NULL;
     pthread_t event_thread;
@@ -200,22 +201,28 @@ int main(int argc, char **argv)
             }
             else if (stroke == 'r')
             {
-                rewind_buffer(buffer_read_ptr);
+                rewind_buffer(buffer_read_ptr, 10);
             }
             else if (stroke == 'R')
             {
-                print_message_buffer(message_buffer);
+                int lines;
+
+                tcsetattr(0, TCSANOW, &termstate);
+                printf(":lines> ");
+                scanf("%d", &lines);
+                rewind_buffer(buffer_read_ptr, lines);
+                tcsetattr(0, TCSANOW, &termstate_raw);
+                (void)getchar();
             }
             else
             {
-                tcsetattr(0, TCSANOW, &termstate);
-
                 char *input;
+
+                tcsetattr(0, TCSANOW, &termstate);
                 show_prompt(ctx);
                 input = get_input();
                 send_message(sess, ctx, input);
                 free(input);
-
                 tcsetattr(0, TCSANOW, &termstate_raw);
             }
         }
@@ -397,10 +404,16 @@ void event_connect (irc_session_t * session, const char * event, const char * or
 
 void event_channel (irc_session_t * session, const char * event, const char * origin, const char ** params, unsigned int count)
 {
-    char nickbuf[128];
-    char chanbuf[128];
-    char msgbuf[1024];
-    char messageline[1024];
+    int msglength = strlen(params[1]);
+    int originlength = strlen(params[0]);
+    int messagesize=sizeof(char) * (msglength + originlength + 4);
+
+    char *nickbuf = (char*)malloc(sizeof(char) * (originlength + 1));
+    char *msgbuf = (char*)malloc(sizeof(char) * (msglength + 1));
+    char *messageline = (char*)malloc(sizeof(char) * (messagesize + 1));
+    //char nickbuf[128];
+    //char msgbuf[1024];
+    //char messageline[1024];
 
     if ( count != 2 )
         return;
@@ -409,10 +422,11 @@ void event_channel (irc_session_t * session, const char * event, const char * or
         return;
 
     irc_target_get_nick (origin, nickbuf, sizeof(nickbuf));
-    strcpy(chanbuf, params[0]);
     strcpy(msgbuf, params[1]);
 
-    snprintf(messageline, sizeof(msgbuf), "[%s] %s", nickbuf, msgbuf);
+    //printf("message length: %i, nick length: %i, messagesize = %i\r\n", msglength, originlength, messagesize);
+
+    snprintf(messageline, messagesize, "[%s] %s", nickbuf, msgbuf);
     message_buffer->curr = add_to_buffer(message_buffer->curr, messageline);
 
     /*
@@ -460,6 +474,10 @@ void event_channel (irc_session_t * session, const char * event, const char * or
     if ( strstr (params[1], "whois ") == params[1] )
         irc_cmd_whois (session, params[1] + 5);
     */
+
+    free(nickbuf);
+    free(msgbuf);
+    free(messageline);
 }
 
 void event_privmsg (irc_session_t * session, const char * event, const char * origin, const char ** params, unsigned int count)
@@ -512,10 +530,15 @@ char * get_input()
     return input;
 }
 
-void rewind_buffer(bufline *buffer_read_ptr)
+void rewind_buffer(bufline *buffer_read_ptr, int lines)
 {
-    while (buffer_read_ptr->prev != NULL)
+    lines--;
+
+    while (buffer_read_ptr->prev != NULL && lines > 0)
+    {
         buffer_read_ptr = buffer_read_ptr->prev;
+        lines--;
+    }
 
     while (buffer_read_ptr->next != NULL)
     {
