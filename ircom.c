@@ -53,6 +53,7 @@ void *irc_event_loop(void *);
 bufline *add_to_buffer();
 int kbhit();
 char *get_input();
+void send_message();
 void show_prompt();
 void reset_termstate();
 void rewind_buffer();
@@ -212,8 +213,9 @@ int main(int argc, char **argv)
                 // printf("message_buffer->curr: %p, buffer_read_ptr: %p\n", message_buffer->curr, buffer_read_ptr);
 
                 char *input;
+                show_prompt(ctx);
                 input = get_input();
-                irc_cmd_msg(sess, ctx.channel, input);
+                send_message(sess, ctx, input);
                 free(input);
 
                 tcsetattr(0, TCSANOW, &termstate_raw);
@@ -256,6 +258,18 @@ bufline *add_to_buffer(bufline *msgbuffer, char *cmsg)
     newmsg->isread = 0;
 
     return newmsg;
+}
+
+/* Send a message to the channel, and add it to my buffer */
+void send_message(irc_session_t *s, irc_ctx_t ctx, char *message)
+{
+    int size = sizeof(char) * (strlen(ctx.nick) + strlen(message) + 3 + 1);
+    char *bufferline = (char *)malloc(size);
+
+    snprintf(bufferline, size, "[%s] %s", ctx.nick, message);
+    irc_cmd_msg(s, ctx.channel, message);
+    message_buffer->curr = add_to_buffer(message_buffer->curr, bufferline);
+    message_buffer->curr->isread = 1;
 }
 
 /* Run the event handling loop in it's own thread */
@@ -371,7 +385,6 @@ void event_join (irc_session_t * session, const char * event, const char * origi
 {
     dump_event (session, event, origin, params, count);
     irc_cmd_user_mode (session, "+i");
-    irc_cmd_msg (session, params[0], "Hi all");
 }
 
 void event_connect (irc_session_t * session, const char * event, const char * origin, const char ** params, unsigned int count)
@@ -399,7 +412,7 @@ void event_channel (irc_session_t * session, const char * event, const char * or
     strcpy(chanbuf, params[0]);
     strcpy(msgbuf, params[1]);
 
-    snprintf(messageline, sizeof(msgbuf), "(%s) %s: %s", chanbuf, nickbuf, msgbuf);
+    snprintf(messageline, sizeof(msgbuf), "[%s] %s", nickbuf, msgbuf);
     message_buffer->curr = add_to_buffer(message_buffer->curr, messageline);
 
     /*
@@ -482,9 +495,9 @@ void reset_termstate()
 }
 
 /* custom functions for testing */
-void show_prompt()
+void show_prompt(irc_ctx_t ctx)
 {
-    printf("prompt > ");
+    printf("[%s] ", ctx.nick);
 }
 
 char * get_input()
@@ -493,7 +506,6 @@ char * get_input()
     size_t buffer_size = 0;
     ssize_t read_size;
 
-    show_prompt();
 
     read_size = getline(&input, &buffer_size, stdin);
     // printf("Got %zd bytes, buffer size is %zd bytes\n", read_size, buffer_size);
@@ -506,20 +518,22 @@ void rewind_buffer(bufline *buffer_read_ptr)
     while (buffer_read_ptr->prev != NULL)
         buffer_read_ptr = buffer_read_ptr->prev;
 
-    while (buffer_read_ptr->next != NULL)
+    do
     {
-        printf("%p: (%p) %s\r\n",buffer_read_ptr, buffer_read_ptr->message, buffer_read_ptr->message);
+        printf("%s\r\n", buffer_read_ptr->message);
         buffer_read_ptr = buffer_read_ptr->next;
-    }
+    } while (buffer_read_ptr->next != NULL);
+    printf("%s\r\n", buffer_read_ptr->message);
 }
 
 void print_message_buffer(bufptr *msgbuf)
 {
     bufline *buffer = msgbuf->head;
 
-    while (buffer->next != NULL)
+    do
     {
-        printf("%p: (%p) %s\r\n", buffer, buffer->message, buffer->message);
+        printf("%s\r\n", buffer->message);
         buffer = buffer->next;
-    }
+    } while (buffer->next != NULL);
+    printf("%s\r\n", buffer->message);
 }
