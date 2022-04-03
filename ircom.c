@@ -26,17 +26,21 @@ struct bufptr
     char *channel;
     bufline *head;
     bufline *curr;
+
+    struct bufptr *nextbuf;
 };
 
 typedef struct
 {
-    //char *channel; //This will be deleted once multiple buffers are implemented, replaced by the buffer struct below
     char *nick;
-    bufptr buffer[20]; //This will point to an array of bufptr structs
+    char *initial_chan;
+    //bufptr buffer_index[2];
+    bufptr *buffer_index;
     int buffer_count;
 } irc_ctx_t;
 
-bufptr *message_buffer;
+bufptr *server_buffer;
+bufline *buffer_read_ptr;
 struct termios termstate;
 
 /* Functions */
@@ -55,6 +59,8 @@ void addlog(const char *, ...);
 
 void *irc_event_loop(void *);
 bufline *add_to_buffer();
+bufptr *init_buffer();
+bufptr *channel_buffer();
 int kbhit();
 char *get_input();
 void send_message();
@@ -120,27 +126,23 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    /* Initialize the server message buffer */
+    /* Initialize buffers */
+    server_buffer = init_buffer(argv[1]);
+    //message_buffer = init_buffer();
+    //server_buffer->nextbuf = message_buffer;
 
-    /* Initialize the first channel message buffer and create the first entry */
-    message_buffer = malloc(sizeof(struct bufptr));
-    bufline *newbuf = (struct bufline*) malloc(sizeof(struct bufline));
-    message_buffer->head = newbuf;
-    message_buffer->curr = newbuf;
-    message_buffer->curr->prev = NULL;
-    message_buffer->curr->next = NULL;
-    message_buffer->curr->message = NULL;
-    message_buffer->curr->isread = NULL;
-
-    bufline *buffer_read_ptr = newbuf;
+    /* Start output in the server buffer */
+    buffer_read_ptr = server_buffer->curr;
 
     /* Initialize my user-defined IRC context, with two buffers */
     irc_ctx_t ctx;
-    //ctx.channel = argv[3];
     ctx.nick = argv[2];
-    ctx.buffer[0] = *message_buffer;
-    ctx.buffer[0].channel = argv[3];
-    ctx.buffer_count = 1;
+    ctx.initial_chan = argv[3];
+    //ctx.buffer_index[0] = *server_buffer;
+    //ctx.buffer_index[0].channel = argv[1];
+    //ctx.buffer_index[1] = *message_buffer;
+    //ctx.buffer_index[1].channel = argv[3];
+    //ctx.buffer_count = 2;
 
     irc_set_ctx(sess, &ctx);
     //irc_option_set(sess, LIBIRC_OPTION_STRIPNICKS);
@@ -175,7 +177,7 @@ int main(int argc, char **argv)
         /* Walk the message buffer, and write messages to the terminal */
         while (buffer_read_ptr->next != NULL)
         {
-            if (buffer_read_ptr->isread == 0)
+            if (buffer_read_ptr->isread == 0 && buffer_read_ptr->message != NULL)
             {
                 buffer_read_ptr->isread = 1;
                 printf("%s\r\n", buffer_read_ptr->message);
@@ -187,7 +189,7 @@ int main(int argc, char **argv)
             }
         }
 
-        if (buffer_read_ptr->isread == 0)
+        if (buffer_read_ptr->isread == 0 && buffer_read_ptr->message != NULL)
         {
             buffer_read_ptr->isread = 1;
             printf("%s\r\n", buffer_read_ptr->message);
@@ -225,7 +227,6 @@ int main(int argc, char **argv)
             {
                 char *input;
                 char actionbuf[1024];
-                size_t buffer_size = 0;
 
                 tcsetattr(0, TCSANOW, &termstate);
                 printf(":emote> ");
@@ -237,7 +238,6 @@ int main(int argc, char **argv)
             else
             {
                 char *input;
-                size_t buffer_size = 0;
 
                 tcsetattr(0, TCSANOW, &termstate);
                 show_prompt(ctx);
@@ -251,11 +251,49 @@ int main(int argc, char **argv)
 
 quit:
 
-    free(newbuf);
+    // TODO: create cleanup functions that walks buffers and frees mallocs
+    free(server_buffer->head);
 	return 0;
 }
 
-/* Add a message to the end of the message buffer, and update pointers */
+/* Initialize a new channel message buffer, return a pointer to the new buffer */
+bufptr *init_buffer(char *channel)
+{
+    char *bufchan = malloc(sizeof(char) * (strlen(channel) + 1));
+    strcpy(bufchan, channel);
+
+    bufptr *channel_buffer = malloc(sizeof(struct bufptr));
+    channel_buffer->head = channel_buffer->curr = (struct bufline*) malloc(sizeof(struct bufline));
+    channel_buffer->channel = bufchan;
+    channel_buffer->curr->prev = NULL;
+    channel_buffer->curr->next = NULL;
+    channel_buffer->curr->message = NULL;
+    channel_buffer->curr->isread = NULL;
+    channel_buffer->nextbuf = NULL;
+
+    return channel_buffer;
+}
+
+/* Return a pointer for a specified channel's buffer, init a new buffer if needed */
+bufptr *channel_buffer(char *channel)
+{
+    bufptr *search_ptr = server_buffer;
+
+    while (search_ptr->nextbuf != NULL)
+    {
+        if(strcmp(search_ptr->nextbuf->channel, channel) == 0)
+            return search_ptr->nextbuf;
+
+        search_ptr = search_ptr->nextbuf;
+    }
+
+    bufptr *newbuf = init_buffer(channel);
+    search_ptr->nextbuf = newbuf;
+
+    return search_ptr->nextbuf;
+}
+
+/* Add a message to the end of the message buffer, return a pointer to new entry */
 bufline *add_to_buffer(bufline *msgbuffer, char *cmsg)
 {
     char *messageline = (char*)malloc(sizeof(char) * (strlen(cmsg) + 1));
@@ -294,9 +332,10 @@ void send_message(irc_session_t *s, irc_ctx_t ctx, char *message)
 {
     int size = sizeof(char) * (strlen(ctx.nick) + strlen(message) + 4);
     char *bufferline = (char *)malloc(size);
+    bufptr *message_buffer = channel_buffer(ctx.initial_chan);
 
     snprintf(bufferline, size, "[%s] %s", ctx.nick, message);
-    irc_cmd_msg(s, ctx.buffer[0].channel, message);
+    irc_cmd_msg(s, ctx.initial_chan, message);
     message_buffer->curr = add_to_buffer(message_buffer->curr, bufferline);
     message_buffer->curr->isread = 1;
     free(bufferline);
@@ -307,9 +346,10 @@ void send_action(irc_session_t *s, irc_ctx_t ctx, char *action)
 {
     int size = sizeof(char) * (strlen(ctx.nick) + strlen(action) + 4);
     char *bufferline = (char *)malloc(size);
+    bufptr *message_buffer = channel_buffer(ctx.initial_chan);
 
     snprintf(bufferline, size, "<%s %s>", ctx.nick, action);
-    irc_cmd_me(s, ctx.buffer[0].channel, action);
+    irc_cmd_me(s, ctx.initial_chan, action);
     message_buffer->curr = add_to_buffer(message_buffer->curr, bufferline);
     message_buffer->curr->isread = 1;
     free(bufferline);
@@ -405,6 +445,7 @@ void dcc_file_recv_callback (irc_session_t * session, irc_dcc_t id, int status, 
     }
 }
 
+/* Log undefined events to a text file and the server buffer */
 void addlog (const char * fmt, ...)
 {
     FILE * fp;
@@ -415,7 +456,7 @@ void addlog (const char * fmt, ...)
     vsnprintf (buf, sizeof(buf), fmt, va_alist);
     va_end (va_alist);
 
-    message_buffer->curr = add_to_buffer(message_buffer->curr, buf);
+    server_buffer->curr = add_to_buffer(server_buffer->curr, buf);
 
     if ( (fp = fopen ("irctest.log", "ab")) != 0 )
     {
@@ -427,20 +468,23 @@ void addlog (const char * fmt, ...)
 void event_join (irc_session_t * session, const char * event, const char * origin, const char ** params, unsigned int count)
 {
     char nickbuf[128];
+    char chanbuf[128];
 
     irc_target_get_nick (origin, nickbuf, sizeof(nickbuf));
-
+    strcpy(chanbuf, params[0]);
     irc_ctx_t * ctx = (irc_ctx_t *) irc_get_ctx (session);
+    bufptr *message_buffer = channel_buffer(chanbuf);
 
     if(strcmp(nickbuf, ctx->nick) == 0)
     {
+        buffer_read_ptr = message_buffer->curr; // Move read pointer to first channel buffer upon join
         dump_event (session, event, origin, params, count);
         irc_cmd_user_mode (session, "+i");
-    }
+    } 
     else
     {
         char joinmsg[256];
-        snprintf(joinmsg, 256, "%s has joined %s.", nickbuf, ctx->buffer[0].channel);
+        snprintf(joinmsg, 256, "%s has joined %s.", nickbuf, chanbuf);
         message_buffer->curr = add_to_buffer(message_buffer->curr, joinmsg);
     }
 }
@@ -448,10 +492,12 @@ void event_join (irc_session_t * session, const char * event, const char * origi
 void event_part(irc_session_t * session, const char * event, const char * origin, const char ** params, unsigned int count)
 {
     char nickbuf[128];
+    char chanbuf[128];
 
     irc_target_get_nick (origin, nickbuf, sizeof(nickbuf));
-
+    strcpy(chanbuf, params[0]);
     irc_ctx_t * ctx = (irc_ctx_t *) irc_get_ctx (session);
+    bufptr *message_buffer = channel_buffer(chanbuf);
 
     if(strcmp(nickbuf, ctx->nick) == 0)
     {
@@ -460,7 +506,7 @@ void event_part(irc_session_t * session, const char * event, const char * origin
     else
     {
         char joinmsg[256];
-        snprintf(joinmsg, 256, "%s has left %s.", nickbuf, ctx->buffer[0].channel);
+        snprintf(joinmsg, 256, "%s has left %s.", nickbuf, params[0]);
         message_buffer->curr = add_to_buffer(message_buffer->curr, joinmsg);
     }
 }
@@ -470,7 +516,7 @@ void event_connect (irc_session_t * session, const char * event, const char * or
     irc_ctx_t * ctx = (irc_ctx_t *) irc_get_ctx (session);
     dump_event (session, event, origin, params, count);
 
-    irc_cmd_join (session, ctx->buffer[0].channel, 0);
+    irc_cmd_join (session, ctx->initial_chan, 0);
 }
 
 void event_channel (irc_session_t * session, const char * event, const char * origin, const char ** params, unsigned int count)
@@ -486,6 +532,7 @@ void event_channel (irc_session_t * session, const char * event, const char * or
     */
 
     char nickbuf[128];
+    char chanbuf[128];
     char msgbuf[1024];
     char messageline[1156];
 
@@ -497,6 +544,8 @@ void event_channel (irc_session_t * session, const char * event, const char * or
 
     irc_target_get_nick (origin, nickbuf, sizeof(nickbuf));
     strcpy(msgbuf, params[1]);
+    strcpy(chanbuf, params[0]);
+    bufptr *message_buffer = channel_buffer(chanbuf);
 
     snprintf(messageline, 1156, "[%s] %s", nickbuf, msgbuf);
     message_buffer->curr = add_to_buffer(message_buffer->curr, messageline);
@@ -558,6 +607,10 @@ void event_action(irc_session_t * session, const char * event, const char * orig
 {
     char nickbuf[128];
     char actionbuf[256];
+    char chanbuf[128];
+
+    strcpy(chanbuf, params[0]);
+    bufptr *message_buffer = channel_buffer(chanbuf);
 
     irc_target_get_nick (origin, nickbuf, sizeof(nickbuf));
     snprintf(actionbuf, 256, "<%s %s>", nickbuf, params[1]);
@@ -593,7 +646,6 @@ int kbhit()
 
 void reset_termstate()
 {
-    free(message_buffer);
     tcsetattr(0, TCSANOW, &termstate);
 }
 
@@ -609,20 +661,19 @@ char * get_input()
     size_t buffer_size = 0;
 
     getline(&input, &buffer_size, stdin);
-    input[strlen(input)-1] = '\0'; // Remote trailing newline that getline added
+    input[strlen(input)-1] = '\0'; // Remote trailing newline
 
     return input;
 }
 
 void rewind_buffer(bufline *buffer_read_ptr, int lines)
 {
-    lines--;
-
     printf("--Beginning-Review--------------------------------------------------------------\r\n");
-    while (buffer_read_ptr->prev != NULL && lines > 0)
+    for (lines--; lines > 0; lines--)
     {
+        if (buffer_read_ptr->prev == NULL)
+           break; 
         buffer_read_ptr = buffer_read_ptr->prev;
-        lines--;
     }
 
     while (buffer_read_ptr->next != NULL)
@@ -634,6 +685,7 @@ void rewind_buffer(bufline *buffer_read_ptr, int lines)
     printf("--Review-Complete---------------------------------------------------------------\r\n");
 }
 
+// Unused/For testing:
 void print_message_buffer(bufptr *msgbuf)
 {
     bufline *buffer = msgbuf->head;
