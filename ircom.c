@@ -82,9 +82,10 @@ int main(int argc, char **argv)
     irc_callbacks_t callbacks;
     irc_session_t * sess;
     unsigned short port = 6667;
-    char *input = NULL;
-    pthread_t event_thread;
+    char current_channel[128];
+    //char *input = NULL;
     char keycmd;
+    pthread_t event_thread;
 
     /* Save terminal state, and restore on exit */
     struct termios termstate_raw;
@@ -138,6 +139,7 @@ int main(int argc, char **argv)
     irc_ctx_t ctx;
     ctx.nick = argv[2];
     ctx.initial_chan = argv[3];
+    strcpy(current_channel, ctx.initial_chan);
     //ctx.buffer_index[0] = *server_buffer;
     //ctx.buffer_index[0].channel = argv[1];
     //ctx.buffer_index[1] = *message_buffer;
@@ -226,12 +228,24 @@ int main(int argc, char **argv)
             else if (stroke == 'e')
             {
                 char *input;
-                char actionbuf[1024];
 
                 tcsetattr(0, TCSANOW, &termstate);
                 printf(":emote> ");
                 input = get_input();
                 send_action(sess, ctx, input);
+                free(input);
+                tcsetattr(0, TCSANOW, &termstate_raw);
+            }
+            else if (stroke == 'g')
+            {
+                char *input;
+
+                tcsetattr(0, TCSANOW, &termstate);
+                printf(":channel> ");
+                input = get_input();
+                irc_cmd_join(sess, input, 0);
+                strcpy(current_channel, input);
+                buffer_read_ptr = channel_buffer(input)->curr;
                 free(input);
                 tcsetattr(0, TCSANOW, &termstate_raw);
             }
@@ -242,7 +256,7 @@ int main(int argc, char **argv)
                 tcsetattr(0, TCSANOW, &termstate);
                 show_prompt(ctx);
                 input = get_input();
-                send_message(sess, ctx, input);
+                send_message(sess, current_channel, input);
                 free(input);
                 tcsetattr(0, TCSANOW, &termstate_raw);
             }
@@ -328,28 +342,32 @@ bufline *add_to_buffer(bufline *msgbuffer, char *cmsg)
 }
 
 /* Send a message to the channel, and add it to my buffer */
-void send_message(irc_session_t *s, irc_ctx_t ctx, char *message)
+void send_message(irc_session_t *s, char *channel, char *message)
 {
-    int size = sizeof(char) * (strlen(ctx.nick) + strlen(message) + 4);
-    char *bufferline = (char *)malloc(size);
-    bufptr *message_buffer = channel_buffer(ctx.initial_chan);
+    irc_ctx_t * ctx = (irc_ctx_t *) irc_get_ctx (s);
 
-    snprintf(bufferline, size, "[%s] %s", ctx.nick, message);
-    irc_cmd_msg(s, ctx.initial_chan, message);
+    int size = sizeof(char) * (strlen(ctx->nick) + strlen(message) + 4);
+    char *bufferline = (char *)malloc(size);
+    bufptr *message_buffer = channel_buffer(channel); //CHANGE THIS AND BELOW
+
+    snprintf(bufferline, size, "[%s] %s", ctx->nick, message);
+    irc_cmd_msg(s, channel, message);
     message_buffer->curr = add_to_buffer(message_buffer->curr, bufferline);
     message_buffer->curr->isread = 1;
     free(bufferline);
 }
 
 /* Send an action to the channel, and add it to my buffer */
-void send_action(irc_session_t *s, irc_ctx_t ctx, char *action)
+void send_action(irc_session_t *s, char *channel, char *action)
 {
-    int size = sizeof(char) * (strlen(ctx.nick) + strlen(action) + 4);
-    char *bufferline = (char *)malloc(size);
-    bufptr *message_buffer = channel_buffer(ctx.initial_chan);
+    irc_ctx_t * ctx = (irc_ctx_t *) irc_get_ctx (s);
 
-    snprintf(bufferline, size, "<%s %s>", ctx.nick, action);
-    irc_cmd_me(s, ctx.initial_chan, action);
+    int size = sizeof(char) * (strlen(ctx->nick) + strlen(action) + 4);
+    char *bufferline = (char *)malloc(size);
+    bufptr *message_buffer = channel_buffer(channel);
+
+    snprintf(bufferline, size, "<%s %s>", ctx->nick, action);
+    irc_cmd_me(s, channel, action);
     message_buffer->curr = add_to_buffer(message_buffer->curr, bufferline);
     message_buffer->curr->isread = 1;
     free(bufferline);
@@ -378,6 +396,7 @@ void dump_event (irc_session_t * session, const char * event, const char * origi
 
     buf[0] = '\0';
 
+    /*
     for ( cnt = 0; cnt < count; cnt++ )
     {
         if ( cnt )
@@ -385,8 +404,11 @@ void dump_event (irc_session_t * session, const char * event, const char * origi
 
         strcat (buf, params[cnt]);
     }
+    */
+    strcat(buf, params[count-1]);
 
-    addlog ("Event \"%s\", origin: \"%s\", params: %d [%s]", event, origin ? origin : "NULL", cnt, buf);
+    // addlog ("Event \"%s\", origin: \"%s\", params: %d [%s]", event, origin ? origin : "NULL", cnt, buf);
+    addlog("%s: %s", event, buf);
 }
 
 /* Example functions from irctest.c, for POC */
@@ -478,15 +500,13 @@ void event_join (irc_session_t * session, const char * event, const char * origi
     if(strcmp(nickbuf, ctx->nick) == 0)
     {
         buffer_read_ptr = message_buffer->curr; // Move read pointer to first channel buffer upon join
-        dump_event (session, event, origin, params, count);
+        //dump_event (session, event, origin, params, count);
         irc_cmd_user_mode (session, "+i");
     } 
-    else
-    {
-        char joinmsg[256];
-        snprintf(joinmsg, 256, "%s has joined %s.", nickbuf, chanbuf);
-        message_buffer->curr = add_to_buffer(message_buffer->curr, joinmsg);
-    }
+
+    char joinmsg[256];
+    snprintf(joinmsg, 256, "%s has joined %s.", nickbuf, chanbuf);
+    message_buffer->curr = add_to_buffer(message_buffer->curr, joinmsg);
 }
 
 void event_part(irc_session_t * session, const char * event, const char * origin, const char ** params, unsigned int count)
@@ -501,14 +521,12 @@ void event_part(irc_session_t * session, const char * event, const char * origin
 
     if(strcmp(nickbuf, ctx->nick) == 0)
     {
-        dump_event (session, event, origin, params, count);
+        //dump_event (session, event, origin, params, count);
     }
-    else
-    {
-        char joinmsg[256];
-        snprintf(joinmsg, 256, "%s has left %s.", nickbuf, params[0]);
-        message_buffer->curr = add_to_buffer(message_buffer->curr, joinmsg);
-    }
+
+    char joinmsg[256];
+    snprintf(joinmsg, 256, "%s has left %s.", nickbuf, params[0]);
+    message_buffer->curr = add_to_buffer(message_buffer->curr, joinmsg);
 }
 
 void event_connect (irc_session_t * session, const char * event, const char * origin, const char ** params, unsigned int count)
@@ -516,7 +534,8 @@ void event_connect (irc_session_t * session, const char * event, const char * or
     irc_ctx_t * ctx = (irc_ctx_t *) irc_get_ctx (session);
     dump_event (session, event, origin, params, count);
 
-    irc_cmd_join (session, ctx->initial_chan, 0);
+    if(ctx->initial_chan != NULL)
+        irc_cmd_join (session, ctx->initial_chan, 0);
 }
 
 void event_channel (irc_session_t * session, const char * event, const char * origin, const char ** params, unsigned int count)
