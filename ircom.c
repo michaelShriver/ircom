@@ -141,7 +141,6 @@ int main(int argc, char **argv)
     strcpy(current_channel, ctx.initial_chan);
 
     irc_set_ctx(sess, &ctx);
-    //irc_option_set(sess, LIBIRC_OPTION_STRIPNICKS);
 
     /* Initiate the IRC server connection */
     if ( irc_connect (sess, argv[1], port, 0, argv[2], 0, 0) )
@@ -410,19 +409,7 @@ void dump_event (irc_session_t * session, const char * event, const char * origi
     int cnt;
 
     buf[0] = '\0';
-
-    /*
-    for ( cnt = 0; cnt < count; cnt++ )
-    {
-        if ( cnt )
-            strcat (buf, "|");
-
-        strcat (buf, params[cnt]);
-    }
-    */
     strcat(buf, params[count-1]);
-
-    // addlog ("Event \"%s\", origin: \"%s\", params: %d [%s]", event, origin ? origin : "NULL", cnt, buf);
     addlog("%s: %s", event, buf);
 }
 
@@ -515,7 +502,6 @@ void event_join (irc_session_t * session, const char * event, const char * origi
     if(strcmp(nickbuf, ctx->nick) == 0)
     {
         buffer_read_ptr = message_buffer->curr; // Move read pointer to first channel buffer upon join
-        //dump_event (session, event, origin, params, count);
         irc_cmd_user_mode (session, "+i");
     } 
 
@@ -558,16 +544,6 @@ void event_connect (irc_session_t * session, const char * event, const char * or
 
 void event_channel (irc_session_t * session, const char * event, const char * origin, const char ** params, unsigned int count)
 {
-    /* Dynamically allocating these buffers is cutting off messages 
-    int msglength = strlen(params[1]);
-    int originlength = strlen(params[0]);
-    int messagesize=sizeof(char) * (msglength + originlength + 4);
-
-    char *nickbuf = (char*)malloc(sizeof(char) * (originlength + 1));
-    char *msgbuf = (char*)malloc(sizeof(char) * (msglength + 1));
-    char *messageline = (char*)malloc(sizeof(char) * (messagesize + 1));
-    */
-
     char nickbuf[128];
     char chanbuf[128];
     char msgbuf[1024];
@@ -587,57 +563,7 @@ void event_channel (irc_session_t * session, const char * event, const char * or
     snprintf(messageline, 1156, "[%s] %s", nickbuf, msgbuf);
     message_buffer->curr = add_to_buffer(message_buffer->curr, messageline);
 
-    /*
-    if ( !strcmp (params[1], "quit") )
-        irc_cmd_quit (session, "of course, Master!");
-
-    if ( !strcmp (params[1], "help") )
-    {
-        irc_cmd_msg (session, params[0], "quit, help, dcc chat, dcc send, ctcp");
-    }
-
-    if ( !strcmp (params[1], "ctcp") )
-    {
-        irc_cmd_ctcp_request (session, nickbuf, "PING 223");
-        irc_cmd_ctcp_request (session, nickbuf, "FINGER");
-        irc_cmd_ctcp_request (session, nickbuf, "VERSION");
-        irc_cmd_ctcp_request (session, nickbuf, "TIME");
-    }
-
-    if ( !strcmp (params[1], "dcc chat") )
-    {
-        irc_dcc_t dccid;
-        irc_dcc_chat (session, 0, nickbuf, dcc_recv_callback, &dccid);
-        printf ("DCC chat ID: %d\n", dccid);
-    }
-
-    if ( !strcmp (params[1], "dcc send") )
-    {
-        irc_dcc_t dccid;
-        irc_dcc_sendfile (session, 0, nickbuf, "irctest.c", dcc_file_recv_callback, &dccid);
-        printf ("DCC send ID: %d\n", dccid);
-    }
-
-    if ( !strcmp (params[1], "topic") )
-        irc_cmd_topic (session, params[0], 0);
-    else if ( strstr (params[1], "topic ") == params[1] )
-        irc_cmd_topic (session, params[0], params[1] + 6);
-
-    if ( strstr (params[1], "mode ") == params[1] )
-        irc_cmd_channel_mode (session, params[0], params[1] + 5);
-
-    if ( strstr (params[1], "nick ") == params[1] )
-        irc_cmd_nick (session, params[1] + 5);
-
-    if ( strstr (params[1], "whois ") == params[1] )
-        irc_cmd_whois (session, params[1] + 5);
-    */
-
-    /*
-    free(nickbuf);
-    free(msgbuf);
-    free(messageline);
-    */
+    return;
 }
 
 void event_action(irc_session_t * session, const char * event, const char * origin, const char ** params, unsigned int count)
