@@ -23,10 +23,10 @@ struct bufline
 typedef struct bufptr bufptr;
 struct bufptr
 {
+    struct bufptr *prevbuf;
     char *channel;
     bufline *head;
     bufline *curr;
-
     struct bufptr *nextbuf;
 };
 
@@ -34,7 +34,6 @@ typedef struct
 {
     char *nick;
     char *initial_chan;
-    //bufptr buffer_index[2];
     bufptr *buffer_index;
     int buffer_count;
 } irc_ctx_t;
@@ -68,7 +67,10 @@ void send_action();
 void show_prompt();
 void reset_termstate();
 void rewind_buffer();
+void peek_channel();
 void print_message_buffer();
+void clear_buffer();
+void delete_buffer();
 
 int main(int argc, char **argv)
 {
@@ -82,8 +84,7 @@ int main(int argc, char **argv)
     irc_callbacks_t callbacks;
     irc_session_t * sess;
     unsigned short port = 6667;
-    char current_channel[128];
-    //char *input = NULL;
+    char current_channel[128]; //TODO: Add mechanism to update this when on external channel joins
     char keycmd;
     pthread_t event_thread;
 
@@ -129,8 +130,6 @@ int main(int argc, char **argv)
 
     /* Initialize buffers */
     server_buffer = init_buffer(argv[1]);
-    //message_buffer = init_buffer();
-    //server_buffer->nextbuf = message_buffer;
 
     /* Start output in the server buffer */
     buffer_read_ptr = server_buffer->curr;
@@ -140,11 +139,6 @@ int main(int argc, char **argv)
     ctx.nick = argv[2];
     ctx.initial_chan = argv[3];
     strcpy(current_channel, ctx.initial_chan);
-    //ctx.buffer_index[0] = *server_buffer;
-    //ctx.buffer_index[0].channel = argv[1];
-    //ctx.buffer_index[1] = *message_buffer;
-    //ctx.buffer_index[1].channel = argv[3];
-    //ctx.buffer_count = 2;
 
     irc_set_ctx(sess, &ctx);
     //irc_option_set(sess, LIBIRC_OPTION_STRIPNICKS);
@@ -212,7 +206,7 @@ int main(int argc, char **argv)
             }
             else if (stroke == 'r')
             {
-                rewind_buffer(buffer_read_ptr, 10);
+                rewind_buffer(buffer_read_ptr, 15);
             }
             else if (stroke == 'R')
             {
@@ -243,10 +237,28 @@ int main(int argc, char **argv)
                 tcsetattr(0, TCSANOW, &termstate);
                 printf(":channel> ");
                 input = get_input();
-                irc_cmd_join(sess, input, 0);
                 strcpy(current_channel, input);
-                buffer_read_ptr = channel_buffer(input)->curr;
                 free(input);
+                buffer_read_ptr = channel_buffer(current_channel)->curr;
+                irc_cmd_join(sess, current_channel, 0);
+                // TODO: determine if I am already joined to a channel, switch buffers appropriately
+                tcsetattr(0, TCSANOW, &termstate_raw);
+            }
+            else if (stroke == 'p')
+            {
+                char *input;
+
+                tcsetattr(0, TCSANOW, &termstate);
+                printf(":peek> ");
+                input = get_input();
+                peek_channel(input);
+                free(input);
+                tcsetattr(0, TCSANOW, &termstate_raw);
+            }
+            else if (stroke == 'P')
+            {
+                tcsetattr(0, TCSANOW, &termstate);
+                irc_cmd_part(sess, current_channel);
                 tcsetattr(0, TCSANOW, &termstate_raw);
             }
             else
@@ -256,7 +268,10 @@ int main(int argc, char **argv)
                 tcsetattr(0, TCSANOW, &termstate);
                 show_prompt(ctx);
                 input = get_input();
-                send_message(sess, current_channel, input);
+                if (strcmp(input, "") == 0)
+                    printf("<no message sent>\n");
+                else
+                    send_message(sess, current_channel, input);
                 free(input);
                 tcsetattr(0, TCSANOW, &termstate_raw);
             }
@@ -266,7 +281,7 @@ int main(int argc, char **argv)
 quit:
 
     // TODO: create cleanup functions that walks buffers and frees mallocs
-    free(server_buffer->head);
+    tcsetattr(0, TCSANOW, &termstate);
 	return 0;
 }
 
@@ -283,6 +298,7 @@ bufptr *init_buffer(char *channel)
     channel_buffer->curr->next = NULL;
     channel_buffer->curr->message = NULL;
     channel_buffer->curr->isread = NULL;
+    channel_buffer->prevbuf = NULL;
     channel_buffer->nextbuf = NULL;
 
     return channel_buffer;
@@ -302,6 +318,7 @@ bufptr *channel_buffer(char *channel)
     }
 
     bufptr *newbuf = init_buffer(channel);
+    newbuf->prevbuf = search_ptr;
     search_ptr->nextbuf = newbuf;
 
     return search_ptr->nextbuf;
@@ -315,9 +332,7 @@ bufline *add_to_buffer(bufline *msgbuffer, char *cmsg)
 
     /* Ensure we are at the end of the buffer */
     while (msgbuffer->next != NULL)
-    {
         msgbuffer = msgbuffer->next;
-    }
 
     /* Handle the first node in the message buffer */
     if (msgbuffer->message == NULL)
@@ -521,12 +536,15 @@ void event_part(irc_session_t * session, const char * event, const char * origin
 
     if(strcmp(nickbuf, ctx->nick) == 0)
     {
-        //dump_event (session, event, origin, params, count);
+        clear_buffer(channel_buffer(chanbuf));
     }
-
-    char joinmsg[256];
-    snprintf(joinmsg, 256, "%s has left %s.", nickbuf, params[0]);
-    message_buffer->curr = add_to_buffer(message_buffer->curr, joinmsg);
+    else
+    {
+        char joinmsg[256];
+        snprintf(joinmsg, 256, "%s has left %s.", nickbuf, params[0]);
+        message_buffer->curr = add_to_buffer(message_buffer->curr, joinmsg);
+    }
+    return;
 }
 
 void event_connect (irc_session_t * session, const char * event, const char * origin, const char ** params, unsigned int count)
@@ -702,6 +720,49 @@ void rewind_buffer(bufline *buffer_read_ptr, int lines)
     }
     printf("%s\r\n", buffer_read_ptr->message);
     printf("--Review-Complete---------------------------------------------------------------\r\n");
+}
+
+void peek_channel(char *channel)
+{
+    bufptr *search_ptr = server_buffer;
+
+    while (search_ptr->nextbuf != NULL)
+    {
+        if(strcmp(search_ptr->nextbuf->channel, channel) == 0)
+        {
+            rewind_buffer(search_ptr->nextbuf->curr, 15);
+            return;
+        }
+
+        search_ptr = search_ptr->nextbuf;
+    }
+
+    printf("<no history available for \'%s\'>\r\n", channel);
+    return;
+}
+
+void clear_buffer(bufptr *buffer)
+{
+    bufline *buffer_entry = buffer->curr;
+
+    /* Start at the end */
+    while(buffer_entry->next != NULL)
+        buffer_entry = buffer_entry->next;
+
+    while(buffer_entry->prev != NULL)
+    {
+        buffer_entry = buffer_entry->prev;
+        free(buffer_entry->message);
+        free(buffer_entry->next);
+        buffer_entry->next = NULL;
+    }
+
+    buffer->prevbuf->nextbuf = buffer->nextbuf;
+    buffer->nextbuf->prevbuf = buffer->prevbuf;
+    free(buffer->head->message);
+    free(buffer->head);
+    free(buffer->channel);
+    free(buffer);
 }
 
 // Unused/For testing:
