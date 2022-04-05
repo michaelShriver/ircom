@@ -63,6 +63,7 @@ void *irc_event_loop(void *);
 bufline *add_to_buffer();
 bufptr *init_buffer();
 bufptr *channel_buffer();
+int channel_isjoined();
 int kbhit();
 char *get_input();
 void send_message();
@@ -240,11 +241,17 @@ int main(int argc, char **argv)
                 tcsetattr(0, TCSANOW, &termstate);
                 printf(":channel> ");
                 input = get_input();
-                strcpy(ctx.active_channel, input);
+                if (channel_isjoined(input))
+                {
+                    strcpy(ctx.active_channel, input);
+                    buffer_read_ptr = channel_buffer(ctx.active_channel)->curr;
+                    printf("<now chatting in \'%s\'>\r\n", ctx.active_channel);
+                }
+                else
+                {
+                    irc_cmd_join(sess, input, 0);
+                }
                 free(input);
-                buffer_read_ptr = channel_buffer(ctx.active_channel)->curr;
-                irc_cmd_join(sess, ctx.active_channel, 0);
-                // TODO: determine if I am already joined to a channel, switch buffers appropriately
                 tcsetattr(0, TCSANOW, &termstate_raw);
             }
             else if (stroke == 'p')
@@ -325,6 +332,21 @@ bufptr *channel_buffer(char *channel)
     search_ptr->nextbuf = newbuf;
 
     return search_ptr->nextbuf;
+}
+
+int channel_isjoined(char *channel)
+{
+    bufptr *search_ptr = server_buffer;
+
+    while (search_ptr->nextbuf != NULL)
+    {
+        if(strcmp(search_ptr->nextbuf->channel, channel) == 0)
+            return 1;
+
+        search_ptr = search_ptr->nextbuf;
+    }
+
+    return 0;
 }
 
 /* Add a message to the end of the message buffer, return a pointer to new entry */
@@ -506,6 +528,7 @@ void event_join (irc_session_t * session, const char * event, const char * origi
     if(strcmp(nickbuf, ctx->nick) == 0)
     {
         buffer_read_ptr = message_buffer->curr; // Move read pointer to first channel buffer upon join
+        strcpy(ctx->active_channel, chanbuf);
         irc_cmd_user_mode (session, "+i");
     } 
 
@@ -523,15 +546,19 @@ void event_part(irc_session_t * session, const char * event, const char * origin
     irc_target_get_nick (origin, nickbuf, sizeof(nickbuf));
     strcpy(chanbuf, params[0]);
     irc_ctx_t * ctx = (irc_ctx_t *) irc_get_ctx (session);
-    bufptr *message_buffer = channel_buffer(chanbuf);
 
     if(strcmp(nickbuf, ctx->nick) == 0)
     {
-        clear_buffer(channel_buffer(chanbuf));
+        bufptr *doomed_buffer = channel_buffer(chanbuf);
+        buffer_read_ptr = doomed_buffer->prevbuf->curr;
+        strcpy(ctx->active_channel, doomed_buffer->prevbuf->channel);
+        clear_buffer(doomed_buffer);
+        printf("<now chatting in \'%s\'>\r\n", ctx->active_channel);
     }
     else
     {
         char joinmsg[256];
+        bufptr *message_buffer = channel_buffer(chanbuf);
         snprintf(joinmsg, 256, "%s has left %s.", nickbuf, params[0]);
         message_buffer->curr = add_to_buffer(message_buffer->curr, joinmsg);
         message_buffer->curr->isread = strcmp(ctx->active_channel, chanbuf) == 0 ? 0 : 1;
@@ -683,7 +710,7 @@ void peek_channel(char *channel)
     {
         if(strcmp(search_ptr->nextbuf->channel, channel) == 0)
         {
-            rewind_buffer(search_ptr->nextbuf->curr, 15);
+            rewind_buffer(search_ptr->nextbuf->curr, -1);
             return;
         }
 
@@ -705,13 +732,14 @@ void clear_buffer(bufptr *buffer)
     while(buffer_entry->prev != NULL)
     {
         buffer_entry = buffer_entry->prev;
-        free(buffer_entry->message);
+        free(buffer_entry->next->message);
         free(buffer_entry->next);
         buffer_entry->next = NULL;
     }
 
     buffer->prevbuf->nextbuf = buffer->nextbuf;
-    buffer->nextbuf->prevbuf = buffer->prevbuf;
+    if (buffer->nextbuf != NULL)
+        buffer->nextbuf->prevbuf = buffer->prevbuf;
     free(buffer->head->message);
     free(buffer->head);
     free(buffer->channel);
