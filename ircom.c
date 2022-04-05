@@ -550,10 +550,17 @@ void event_part(irc_session_t * session, const char * event, const char * origin
     if(strcmp(nickbuf, ctx->nick) == 0)
     {
         bufptr *doomed_buffer = channel_buffer(chanbuf);
-        buffer_read_ptr = doomed_buffer->prevbuf->curr;
-        strcpy(ctx->active_channel, doomed_buffer->prevbuf->channel);
+
+        if (strcmp(ctx->active_channel, chanbuf) == 0)
+        {
+            buffer_read_ptr = doomed_buffer->prevbuf->curr;
+            strcpy(ctx->active_channel, doomed_buffer->prevbuf->channel);
+            printf("<now chatting in \'%s\'>\r\n", ctx->active_channel);
+        }
+        else
+            printf("<you have been removed from \'%s\'>\r\n", chanbuf);
+
         clear_buffer(doomed_buffer);
-        printf("<now chatting in \'%s\'>\r\n", ctx->active_channel);
     }
     else
     {
