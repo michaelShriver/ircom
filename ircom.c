@@ -652,7 +652,8 @@ void rewind_buffer(bufline *buffer_read_ptr, int lines)
             lines = lines + (((strlen(buffer_read_ptr->message)) / ttysize.ws_col) + 1);
             buffer_read_ptr = buffer_read_ptr->prev;
         }
-        buffer_read_ptr = buffer_read_ptr->next;
+        if (buffer_read_ptr != NULL)
+            buffer_read_ptr = buffer_read_ptr->next;
     }
     else
     {
