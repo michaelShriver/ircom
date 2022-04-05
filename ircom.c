@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <unistd.h>
 #include <sys/select.h>
+#include <sys/ioctl.h>
 #include <termios.h>
 #include "pthread.h"
 #include "libircclient.h"
@@ -34,6 +35,7 @@ typedef struct
 {
     char *nick;
     char *initial_chan;
+    char active_channel[128];
     bufptr *buffer_index;
     int buffer_count;
 } irc_ctx_t;
@@ -41,6 +43,7 @@ typedef struct
 bufptr *server_buffer;
 bufline *buffer_read_ptr;
 struct termios termstate;
+struct winsize ttysize;
 
 /* Functions */
 
@@ -84,11 +87,12 @@ int main(int argc, char **argv)
     irc_callbacks_t callbacks;
     irc_session_t * sess;
     unsigned short port = 6667;
-    char current_channel[128]; //TODO: Add mechanism to update this when on external channel joins
+    //char current_channel[128]; //TODO: Add mechanism to update this when on external channel joins
     char keycmd;
     pthread_t event_thread;
 
     /* Save terminal state, and restore on exit */
+    ioctl(0, TIOCGWINSZ, &ttysize);
     struct termios termstate_raw;
     tcgetattr(0, &termstate);
     memcpy(&termstate_raw, &termstate, sizeof(termstate_raw)); 
@@ -138,7 +142,7 @@ int main(int argc, char **argv)
     irc_ctx_t ctx;
     ctx.nick = argv[2];
     ctx.initial_chan = argv[3];
-    strcpy(current_channel, ctx.initial_chan);
+    strcpy(ctx.active_channel, ctx.initial_chan);
 
     irc_set_ctx(sess, &ctx);
 
@@ -205,7 +209,7 @@ int main(int argc, char **argv)
             }
             else if (stroke == 'r')
             {
-                rewind_buffer(buffer_read_ptr, 15);
+                rewind_buffer(buffer_read_ptr, -1);
             }
             else if (stroke == 'R')
             {
@@ -225,7 +229,7 @@ int main(int argc, char **argv)
                 tcsetattr(0, TCSANOW, &termstate);
                 printf(":emote> ");
                 input = get_input();
-                send_action(sess, ctx, input);
+                send_action(sess, input);
                 free(input);
                 tcsetattr(0, TCSANOW, &termstate_raw);
             }
@@ -236,10 +240,10 @@ int main(int argc, char **argv)
                 tcsetattr(0, TCSANOW, &termstate);
                 printf(":channel> ");
                 input = get_input();
-                strcpy(current_channel, input);
+                strcpy(ctx.active_channel, input);
                 free(input);
-                buffer_read_ptr = channel_buffer(current_channel)->curr;
-                irc_cmd_join(sess, current_channel, 0);
+                buffer_read_ptr = channel_buffer(ctx.active_channel)->curr;
+                irc_cmd_join(sess, ctx.active_channel, 0);
                 // TODO: determine if I am already joined to a channel, switch buffers appropriately
                 tcsetattr(0, TCSANOW, &termstate_raw);
             }
@@ -257,7 +261,7 @@ int main(int argc, char **argv)
             else if (stroke == 'P')
             {
                 tcsetattr(0, TCSANOW, &termstate);
-                irc_cmd_part(sess, current_channel);
+                irc_cmd_part(sess, ctx.active_channel);
                 tcsetattr(0, TCSANOW, &termstate_raw);
             }
             else
@@ -270,7 +274,7 @@ int main(int argc, char **argv)
                 if (strcmp(input, "") == 0)
                     printf("<no message sent>\n");
                 else
-                    send_message(sess, current_channel, input);
+                    send_message(sess, ctx.active_channel, input);
                 free(input);
                 tcsetattr(0, TCSANOW, &termstate_raw);
             }
@@ -372,16 +376,16 @@ void send_message(irc_session_t *s, char *channel, char *message)
 }
 
 /* Send an action to the channel, and add it to my buffer */
-void send_action(irc_session_t *s, char *channel, char *action)
+void send_action(irc_session_t *s, char *action)
 {
     irc_ctx_t * ctx = (irc_ctx_t *) irc_get_ctx (s);
 
     int size = sizeof(char) * (strlen(ctx->nick) + strlen(action) + 4);
     char *bufferline = (char *)malloc(size);
-    bufptr *message_buffer = channel_buffer(channel);
+    bufptr *message_buffer = channel_buffer(ctx->active_channel);
 
     snprintf(bufferline, size, "<%s %s>", ctx->nick, action);
-    irc_cmd_me(s, channel, action);
+    irc_cmd_me(s, ctx->active_channel, action);
     message_buffer->curr = add_to_buffer(message_buffer->curr, bufferline);
     message_buffer->curr->isread = 1;
     free(bufferline);
@@ -508,6 +512,7 @@ void event_join (irc_session_t * session, const char * event, const char * origi
     char joinmsg[256];
     snprintf(joinmsg, 256, "%s has joined %s.", nickbuf, chanbuf);
     message_buffer->curr = add_to_buffer(message_buffer->curr, joinmsg);
+    message_buffer->curr->isread = strcmp(ctx->active_channel, chanbuf) == 0 ? 0 : 1;
 }
 
 void event_part(irc_session_t * session, const char * event, const char * origin, const char ** params, unsigned int count)
@@ -529,7 +534,9 @@ void event_part(irc_session_t * session, const char * event, const char * origin
         char joinmsg[256];
         snprintf(joinmsg, 256, "%s has left %s.", nickbuf, params[0]);
         message_buffer->curr = add_to_buffer(message_buffer->curr, joinmsg);
+        message_buffer->curr->isread = strcmp(ctx->active_channel, chanbuf) == 0 ? 0 : 1;
     }
+
     return;
 }
 
@@ -544,6 +551,7 @@ void event_connect (irc_session_t * session, const char * event, const char * or
 
 void event_channel (irc_session_t * session, const char * event, const char * origin, const char ** params, unsigned int count)
 {
+    irc_ctx_t * ctx = (irc_ctx_t *) irc_get_ctx (session);
     char nickbuf[128];
     char chanbuf[128];
     char msgbuf[1024];
@@ -562,6 +570,7 @@ void event_channel (irc_session_t * session, const char * event, const char * or
 
     snprintf(messageline, 1156, "[%s] %s", nickbuf, msgbuf);
     message_buffer->curr = add_to_buffer(message_buffer->curr, messageline);
+    message_buffer->curr->isread = strcmp(ctx->active_channel, chanbuf) == 0 ? 0 : 1;
 
     return;
 }
@@ -631,14 +640,31 @@ char * get_input()
 
 void rewind_buffer(bufline *buffer_read_ptr, int lines)
 {
-    printf("--Beginning-Review--------------------------------------------------------------\r\n");
-    for (lines--; lines > 0; lines--)
+    ioctl(0, TIOCGWINSZ, &ttysize); //TODO: change output based on term size
+                                   
+    if (lines <= 0)
     {
-        if (buffer_read_ptr->prev == NULL)
-           break; 
-        buffer_read_ptr = buffer_read_ptr->prev;
+        lines = 0;
+        while(lines < (ttysize.ws_row - 4))
+        {
+            if (buffer_read_ptr->prev == NULL)
+                break; 
+            lines = lines + (((strlen(buffer_read_ptr->message)) / ttysize.ws_col) + 1);
+            buffer_read_ptr = buffer_read_ptr->prev;
+        }
+        buffer_read_ptr = buffer_read_ptr->next;
+    }
+    else
+    {
+        for (lines--; lines > 0; lines--)
+        {
+            if (buffer_read_ptr->prev == NULL)
+               break; 
+            buffer_read_ptr = buffer_read_ptr->prev;
+        }
     }
 
+    printf("--Beginning-Review--------------------------------------------------------------\r\n");
     while (buffer_read_ptr->next != NULL)
     {
         printf("%s\r\n", buffer_read_ptr->message);
