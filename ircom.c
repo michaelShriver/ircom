@@ -74,7 +74,7 @@ void rewind_buffer();
 void peek_channel();
 void print_message_buffer();
 void clear_buffer();
-void delete_buffer();
+void clear_all();
 
 int main(int argc, char **argv)
 {
@@ -86,9 +86,8 @@ int main(int argc, char **argv)
 
     /* Initialize callbacks and pointers */
     irc_callbacks_t callbacks;
-    irc_session_t * sess;
-    unsigned short port = 6667;
-    //char current_channel[128]; //TODO: Add mechanism to update this when on external channel joins
+    irc_session_t *sess;
+    unsigned short port = 6667; // TODO: accept port from command line
     char keycmd;
     pthread_t event_thread;
 
@@ -290,7 +289,7 @@ int main(int argc, char **argv)
 
 quit:
 
-    // TODO: create cleanup functions that walks buffers and frees mallocs
+    clear_all(sess);
     tcsetattr(0, TCSANOW, &termstate);
 	return 0;
 }
@@ -532,8 +531,8 @@ void event_join (irc_session_t * session, const char * event, const char * origi
         irc_cmd_user_mode (session, "+i");
     } 
 
-    char joinmsg[256];
-    snprintf(joinmsg, 256, "%s has joined %s.", nickbuf, chanbuf);
+    char joinmsg[268];
+    snprintf(joinmsg, 268, "%s has joined %s.", nickbuf, chanbuf);
     message_buffer->curr = add_to_buffer(message_buffer->curr, joinmsg);
     message_buffer->curr->isread = strcmp(ctx->active_channel, chanbuf) == 0 ? 0 : 1;
 }
@@ -674,7 +673,7 @@ char * get_input()
 
 void rewind_buffer(bufline *buffer_read_ptr, int lines)
 {
-    ioctl(0, TIOCGWINSZ, &ttysize); //TODO: change output based on term size
+    ioctl(0, TIOCGWINSZ, &ttysize);
                                    
     if (lines <= 0)
     {
@@ -751,6 +750,36 @@ void clear_buffer(bufptr *buffer)
     free(buffer->head);
     free(buffer->channel);
     free(buffer);
+}
+
+void clear_all(irc_session_t *s)
+{
+    bufptr *search_ptr = server_buffer;
+
+    while (search_ptr->nextbuf != NULL)
+        search_ptr = search_ptr->nextbuf;
+
+    while (search_ptr->prevbuf != NULL)
+    {
+        search_ptr = search_ptr->prevbuf;
+        clear_buffer(search_ptr->nextbuf);
+    }
+
+    /* Clean up the server_buffer */
+    while(server_buffer->curr->prev != NULL)
+    {
+        server_buffer->curr = server_buffer->curr->prev;
+        free(server_buffer->curr->next->message);
+        free(server_buffer->curr->next);
+        server_buffer->curr->next = NULL;
+    }
+
+    free(server_buffer->head->message);
+    free(server_buffer->head);
+    free(server_buffer->channel);
+    free(server_buffer);
+
+    return;
 }
 
 // Unused/For testing:
