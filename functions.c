@@ -149,7 +149,6 @@ int kbhit()
 
 void exit_cleanup()
 {
-    printf("Cleaning up...\r\n");
     clear_all();
     tcsetattr(0, TCSANOW, &termstate);
 }
