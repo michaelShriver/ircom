@@ -53,12 +53,13 @@ int main(int argc, char **argv)
 
     /* Create a new IRC session */
     sess = irc_create_session(&callbacks);
+    irc_option_set(sess, LIBIRC_OPTION_SSL_NO_VERIFY);
 
     /* check for error */
     if ( !sess )
     {
         printf ("Could not create session\n");
-        return 1;
+        exit(1);
     }
 
     /* Initialize buffers */
@@ -79,7 +80,7 @@ int main(int argc, char **argv)
     if ( irc_connect (sess, argv[1], port, 0, argv[2], 0, 0) )
     {
         printf ("Could not connect: %s\n", irc_strerror (irc_errno(sess)));
-        return 1;
+        exit(1);
     }
 
     /* Fork thread that runs libirc event handling loop */
@@ -87,7 +88,7 @@ int main(int argc, char **argv)
     if (err)
     {
         printf ("Failed to create thread\n");
-        return 1;
+        exit(1);
     }
 
     /* Set termstate to raw */
@@ -216,4 +217,6 @@ int main(int argc, char **argv)
             }
         }
     }
+
+    return 1;
 }
