@@ -1,7 +1,7 @@
 CFAGS	= 
 LIBS	= -lircclient -lpthread
 
-ircom: ircom.c
+ircom: ircom.c handlers.c functions.c
 	$(CC) $(CFLAGS) $? $(LDFLAGS) $(LIBS) -o $@
 
 clean:
