@@ -6,9 +6,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/select.h>
-#include <stdbool.h>
-#include <termios.h>
-#include <sys/ioctl.h>
 #include "pthread.h"
 #include "libircclient.h"
 #include "struct.h"
