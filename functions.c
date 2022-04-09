@@ -147,8 +147,10 @@ int kbhit()
     return select(1, &fds, NULL, NULL, &tv) > 0;
 }
 
-void reset_termstate()
+void exit_cleanup()
 {
+    printf("Cleaning up...\r\n");
+    clear_all();
     tcsetattr(0, TCSANOW, &termstate);
 }
 
@@ -250,7 +252,7 @@ void clear_buffer(bufptr *buffer)
     free(buffer);
 }
 
-void clear_all(irc_session_t *s)
+void clear_all()
 {
     bufptr *search_ptr = server_buffer;
 

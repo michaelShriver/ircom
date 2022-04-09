@@ -20,7 +20,7 @@ char *get_input();
 void send_message();
 void send_action();
 void show_prompt();
-void reset_termstate();
+void exit_cleanup();
 void rewind_buffer();
 void peek_channel();
 void print_message_buffer();

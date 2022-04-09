@@ -1,5 +1,5 @@
 CC		= gcc
-CFLAGS	= 
+CFLAGS	= -g
 LIBS	= -lircclient -lpthread
 
 ircom: ircom.c handlers.c functions.c

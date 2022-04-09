@@ -25,7 +25,7 @@ int main(int argc, char **argv)
     struct termios termstate_raw;
     tcgetattr(0, &termstate);
     memcpy(&termstate_raw, &termstate, sizeof(termstate_raw)); 
-    atexit(reset_termstate);
+    atexit(exit_cleanup);
 
     /* Zero out memory allocation for callbacks struct */
     memset (&callbacks, 0, sizeof(callbacks));
@@ -130,11 +130,12 @@ int main(int argc, char **argv)
         }
         else
         {
+
             char stroke = getchar();
 
             if (stroke == 'q' || stroke == 3)
             {
-                goto quit;
+                exit(0);
             }
             else if (stroke == 'r')
             {
@@ -215,10 +216,4 @@ int main(int argc, char **argv)
             }
         }
     }
-
-quit:
-
-    clear_all(sess);
-    tcsetattr(0, TCSANOW, &termstate);
-	return 0;
 }

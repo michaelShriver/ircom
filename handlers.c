@@ -8,8 +8,8 @@ void *irc_event_loop(void * sess)
 
     if (irc_run(s))
     {
-        printf ("Could not connect or I/O error: %s\n", irc_strerror (irc_errno(sess)));
-        return NULL;
+        printf ("Could not connect or I/O error: %s", irc_strerror (irc_errno(sess)));
+        exit(1);
     }
 
     return NULL;
