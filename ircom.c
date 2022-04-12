@@ -101,7 +101,6 @@ int main(int argc, char **argv)
     {
     }
 
-    /* This is where my input/output loop will go */
     while (1)
     {
         char stroke = getchar();
