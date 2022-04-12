@@ -94,7 +94,6 @@ int main(int argc, char **argv)
 
     /* Set termstate to raw */
     cfmakeraw(&termstate_raw);
-    tcsetattr(0, TCSANOW, &termstate_raw);
 
     /* Wait for the message buffer to be initialized with valid data */
     while (buffer_read_ptr->message == NULL)
@@ -103,7 +102,9 @@ int main(int argc, char **argv)
 
     while (1)
     {
+        tcsetattr(0, TCSANOW, &termstate_raw);
         char stroke = getchar();
+        tcsetattr(0, TCSANOW, &termstate);
 
         if (stroke == 'q' || stroke == 3)
         {
@@ -118,10 +119,8 @@ int main(int argc, char **argv)
             int lines;
             input_wait = 1;
 
-            tcsetattr(0, TCSANOW, &termstate);
             printf(":lines> ");
             scanf("%d", &lines);
-            tcsetattr(0, TCSANOW, &termstate_raw);
             (void)getchar();
             rewind_buffer(buffer_read_ptr, lines);
             input_wait = 0;
@@ -132,12 +131,10 @@ int main(int argc, char **argv)
             char *input;
             input_wait = 1;
 
-            tcsetattr(0, TCSANOW, &termstate);
             printf(":emote> ");
             input = get_input();
             send_action(sess, input);
             free(input);
-            tcsetattr(0, TCSANOW, &termstate_raw);
             input_wait = 0;
             print_new_messages();
         }
@@ -146,21 +143,19 @@ int main(int argc, char **argv)
             char *input;
             input_wait = 1;
 
-            tcsetattr(0, TCSANOW, &termstate);
             printf(":channel> ");
             input = get_input();
             if (channel_isjoined(input))
             {
                 strcpy(ctx.active_channel, input);
                 buffer_read_ptr = channel_buffer(ctx.active_channel)->curr;
-                printf("<now chatting in \'%s\'>\r\n", ctx.active_channel);
+                printf("<now chatting in \'%s\'>\n", ctx.active_channel);
             }
             else
             {
                 irc_cmd_join(sess, input, 0);
             }
             free(input);
-            tcsetattr(0, TCSANOW, &termstate_raw);
             input_wait = 0;
             print_new_messages();
         }
@@ -169,27 +164,22 @@ int main(int argc, char **argv)
             char *input;
             input_wait = 1;
 
-            tcsetattr(0, TCSANOW, &termstate);
             printf(":peek> ");
             input = get_input();
             peek_channel(input);
             free(input);
-            tcsetattr(0, TCSANOW, &termstate_raw);
             input_wait = 0;
             print_new_messages();
         }
         else if (stroke == 'P')
         {
-            tcsetattr(0, TCSANOW, &termstate);
             irc_cmd_part(sess, ctx.active_channel);
-            tcsetattr(0, TCSANOW, &termstate_raw);
         }
         else
         {
             char *input;
             input_wait = 1;
 
-            tcsetattr(0, TCSANOW, &termstate);
             show_prompt(ctx);
             input = get_input();
             if (strcmp(input, "") == 0)
@@ -197,7 +187,6 @@ int main(int argc, char **argv)
             else
                 send_message(sess, ctx.active_channel, input);
             free(input);
-            tcsetattr(0, TCSANOW, &termstate_raw);
             input_wait = 0;
             print_new_messages();
         }

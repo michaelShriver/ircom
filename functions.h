@@ -5,7 +5,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <sys/select.h>
+//#include <sys/select.h>
 #include "pthread.h"
 #include "libircclient.h"
 #include "struct.h"
