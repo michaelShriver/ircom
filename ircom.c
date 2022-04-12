@@ -4,6 +4,7 @@ bufptr *server_buffer;
 bufline *buffer_read_ptr;
 struct termios termstate;
 struct winsize ttysize;
+bool input_wait = 0;
 
 int main(int argc, char **argv)
 {
@@ -103,118 +104,103 @@ int main(int argc, char **argv)
     /* This is where my input/output loop will go */
     while (1)
     {
-        /* Walk the message buffer, and write messages to the terminal */
-        while (buffer_read_ptr->next != NULL)
-        {
-            if (buffer_read_ptr->isread == 0 && buffer_read_ptr->message != NULL)
-            {
-                buffer_read_ptr->isread = 1;
-                printf("%s\r\n", buffer_read_ptr->message);
-            }
+        char stroke = getchar();
 
-            if (buffer_read_ptr->next != NULL)
-            {
-                buffer_read_ptr = buffer_read_ptr->next;
-            }
+        if (stroke == 'q' || stroke == 3)
+        {
+            exit(0);
         }
-
-        if (buffer_read_ptr->isread == 0 && buffer_read_ptr->message != NULL)
+        else if (stroke == 'r')
         {
-            buffer_read_ptr->isread = 1;
-            printf("%s\r\n", buffer_read_ptr->message);
+            rewind_buffer(buffer_read_ptr, -1);
         }
-
-        /* check for user input, or add a little delay */
-        if (!kbhit())
+        else if (stroke == 'R')
         {
-            sleep(.1);
+            int lines;
+            input_wait = 1;
+
+            tcsetattr(0, TCSANOW, &termstate);
+            printf(":lines> ");
+            scanf("%d", &lines);
+            tcsetattr(0, TCSANOW, &termstate_raw);
+            (void)getchar();
+            rewind_buffer(buffer_read_ptr, lines);
+            input_wait = 0;
+            print_new_messages();
         }
-        else
+        else if (stroke == 'e')
         {
+            char *input;
+            input_wait = 1;
 
-            char stroke = getchar();
+            tcsetattr(0, TCSANOW, &termstate);
+            printf(":emote> ");
+            input = get_input();
+            send_action(sess, input);
+            free(input);
+            tcsetattr(0, TCSANOW, &termstate_raw);
+            input_wait = 0;
+            print_new_messages();
+        }
+        else if (stroke == 'g')
+        {
+            char *input;
+            input_wait = 1;
 
-            if (stroke == 'q' || stroke == 3)
+            tcsetattr(0, TCSANOW, &termstate);
+            printf(":channel> ");
+            input = get_input();
+            if (channel_isjoined(input))
             {
-                exit(0);
-            }
-            else if (stroke == 'r')
-            {
-                rewind_buffer(buffer_read_ptr, -1);
-            }
-            else if (stroke == 'R')
-            {
-                int lines;
-
-                tcsetattr(0, TCSANOW, &termstate);
-                printf(":lines> ");
-                scanf("%d", &lines);
-                tcsetattr(0, TCSANOW, &termstate_raw);
-                (void)getchar();
-                rewind_buffer(buffer_read_ptr, lines);
-            }
-            else if (stroke == 'e')
-            {
-                char *input;
-
-                tcsetattr(0, TCSANOW, &termstate);
-                printf(":emote> ");
-                input = get_input();
-                send_action(sess, input);
-                free(input);
-                tcsetattr(0, TCSANOW, &termstate_raw);
-            }
-            else if (stroke == 'g')
-            {
-                char *input;
-
-                tcsetattr(0, TCSANOW, &termstate);
-                printf(":channel> ");
-                input = get_input();
-                if (channel_isjoined(input))
-                {
-                    strcpy(ctx.active_channel, input);
-                    buffer_read_ptr = channel_buffer(ctx.active_channel)->curr;
-                    printf("<now chatting in \'%s\'>\r\n", ctx.active_channel);
-                }
-                else
-                {
-                    irc_cmd_join(sess, input, 0);
-                }
-                free(input);
-                tcsetattr(0, TCSANOW, &termstate_raw);
-            }
-            else if (stroke == 'p')
-            {
-                char *input;
-
-                tcsetattr(0, TCSANOW, &termstate);
-                printf(":peek> ");
-                input = get_input();
-                peek_channel(input);
-                free(input);
-                tcsetattr(0, TCSANOW, &termstate_raw);
-            }
-            else if (stroke == 'P')
-            {
-                tcsetattr(0, TCSANOW, &termstate);
-                irc_cmd_part(sess, ctx.active_channel);
-                tcsetattr(0, TCSANOW, &termstate_raw);
+                strcpy(ctx.active_channel, input);
+                buffer_read_ptr = channel_buffer(ctx.active_channel)->curr;
+                printf("<now chatting in \'%s\'>\r\n", ctx.active_channel);
             }
             else
             {
-                char *input;
-
-                tcsetattr(0, TCSANOW, &termstate);
-                show_prompt(ctx);
-                input = get_input();
-                if (strcmp(input, "") == 0)
-                    printf("<no message sent>\n");
-                else
-                    send_message(sess, ctx.active_channel, input);
-                free(input);
-                tcsetattr(0, TCSANOW, &termstate_raw);
+                irc_cmd_join(sess, input, 0);
             }
+            free(input);
+            tcsetattr(0, TCSANOW, &termstate_raw);
+            input_wait = 0;
+            print_new_messages();
+        }
+        else if (stroke == 'p')
+        {
+            char *input;
+            input_wait = 1;
+
+            tcsetattr(0, TCSANOW, &termstate);
+            printf(":peek> ");
+            input = get_input();
+            peek_channel(input);
+            free(input);
+            tcsetattr(0, TCSANOW, &termstate_raw);
+            input_wait = 0;
+            print_new_messages();
+        }
+        else if (stroke == 'P')
+        {
+            tcsetattr(0, TCSANOW, &termstate);
+            irc_cmd_part(sess, ctx.active_channel);
+            tcsetattr(0, TCSANOW, &termstate_raw);
+        }
+        else
+        {
+            char *input;
+            input_wait = 1;
+
+            tcsetattr(0, TCSANOW, &termstate);
+            show_prompt(ctx);
+            input = get_input();
+            if (strcmp(input, "") == 0)
+                printf("<no message sent>\n");
+            else
+                send_message(sess, ctx.active_channel, input);
+            free(input);
+            tcsetattr(0, TCSANOW, &termstate_raw);
+            input_wait = 0;
+            print_new_messages();
         }
     }
 

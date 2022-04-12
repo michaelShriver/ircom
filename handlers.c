@@ -36,6 +36,8 @@ void event_join (irc_session_t * session, const char * event, const char * origi
     snprintf(joinmsg, 268, "%s has joined %s.", nickbuf, chanbuf);
     message_buffer->curr = add_to_buffer(message_buffer->curr, joinmsg);
     message_buffer->curr->isread = strcmp(ctx->active_channel, chanbuf) == 0 ? 0 : 1;
+
+    print_new_messages();
 }
 
 void event_part(irc_session_t * session, const char * event, const char * origin, const char ** params, unsigned int count)
@@ -70,6 +72,8 @@ void event_part(irc_session_t * session, const char * event, const char * origin
         message_buffer->curr = add_to_buffer(message_buffer->curr, joinmsg);
         message_buffer->curr->isread = strcmp(ctx->active_channel, chanbuf) == 0 ? 0 : 1;
     }
+
+    print_new_messages();
 
     return;
 }
@@ -106,6 +110,8 @@ void event_channel (irc_session_t * session, const char * event, const char * or
     message_buffer->curr = add_to_buffer(message_buffer->curr, messageline);
     message_buffer->curr->isread = strcmp(ctx->active_channel, chanbuf) == 0 ? 0 : 1;
 
+    print_new_messages();
+
     return;
 }
 
@@ -121,6 +127,8 @@ void event_action(irc_session_t * session, const char * event, const char * orig
     irc_target_get_nick (origin, nickbuf, sizeof(nickbuf));
     snprintf(actionbuf, 256, "<%s %s>", nickbuf, params[1]);
     message_buffer->curr = add_to_buffer(message_buffer->curr, actionbuf);
+
+    print_new_messages();
 }
 
 void event_privmsg (irc_session_t * session, const char * event, const char * origin, const char ** params, unsigned int count)

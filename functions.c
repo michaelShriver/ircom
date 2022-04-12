@@ -135,9 +135,11 @@ void addlog (const char * fmt, ...)
         fprintf (fp, "%s\n", buf);
         fclose (fp);
     }
+    print_new_messages();
 }
 
 /* Implement non-blocking character input kbhit() */
+/*
 int kbhit()
 {
     struct timeval tv = { 0L, 0L };
@@ -146,6 +148,7 @@ int kbhit()
     FD_SET(0, &fds);
     return select(1, &fds, NULL, NULL, &tv) > 0;
 }
+*/
 
 void exit_cleanup()
 {
@@ -281,15 +284,31 @@ void clear_all()
     return;
 }
 
-// Unused/For testing:
-void print_message_buffer(bufptr *msgbuf)
+void print_new_messages()
 {
-    bufline *buffer = msgbuf->head;
 
-    while (buffer->next != NULL)
+    if (input_wait == 0)
     {
-        printf("%s\r\n", buffer->message);
-        buffer = buffer->next;
+        /* Walk the message buffer, and write messages to the terminal */
+        while (buffer_read_ptr->next != NULL)
+        {
+            if (buffer_read_ptr->isread == 0 && buffer_read_ptr->message != NULL)
+            {
+                buffer_read_ptr->isread = 1;
+                printf("%s\r\n", buffer_read_ptr->message);
+            }
+    
+            if (buffer_read_ptr->next != NULL)
+            {
+                buffer_read_ptr = buffer_read_ptr->next;
+            }
+        }
+
+        if (buffer_read_ptr->isread == 0 && buffer_read_ptr->message != NULL)
+        {
+            buffer_read_ptr->isread = 1;
+            printf("%s\r\n", buffer_read_ptr->message);
+        }
     }
-    printf("%s\r\n", buffer->message);
+
 }
