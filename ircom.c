@@ -106,26 +106,8 @@ int main(int argc, char **argv)
         char stroke = getchar();
         tcsetattr(0, TCSANOW, &termstate);
 
-        if (stroke == 'q' || stroke == 3)
-        {
-            exit(0);
-        }
-        else if (stroke == 'r')
-        {
-            rewind_buffer(buffer_read_ptr, -1);
-        }
-        else if (stroke == 'R')
-        {
-            int lines;
-            input_wait = 1;
-
-            printf(":lines> ");
-            scanf("%d", &lines);
-            (void)getchar();
-            rewind_buffer(buffer_read_ptr, lines);
-            input_wait = 0;
-            print_new_messages();
-        }
+        if (stroke == 'c')
+            printf("\e[1;1H\e[2J");
         else if (stroke == 'e')
         {
             char *input;
@@ -174,6 +156,26 @@ int main(int argc, char **argv)
         else if (stroke == 'P')
         {
             irc_cmd_part(sess, ctx.active_channel);
+        }
+        else if (stroke == 'q' || stroke == 3)
+        {
+            exit(0);
+        }
+        else if (stroke == 'r')
+        {
+            rewind_buffer(buffer_read_ptr, -1);
+        }
+        else if (stroke == 'R')
+        {
+            int lines;
+            input_wait = 1;
+
+            printf(":lines> ");
+            scanf("%d", &lines);
+            (void)getchar();
+            rewind_buffer(buffer_read_ptr, lines);
+            input_wait = 0;
+            print_new_messages();
         }
         else
         {
