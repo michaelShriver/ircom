@@ -92,9 +92,6 @@ int main(int argc, char **argv)
         exit(1);
     }
 
-    /* Set termstate to raw */
-    cfmakeraw(&termstate_raw);
-
     /* Wait for the message buffer to be initialized with valid data */
     while (buffer_read_ptr->message == NULL)
     {
@@ -177,20 +174,11 @@ int main(int argc, char **argv)
             input_wait = 0;
             print_new_messages();
         }
-        else
+        else if (stroke == '\r' || stroke == ' ')
         {
             char *input;
             input_wait = 1;
 
-            /*
-            show_prompt(ctx);
-            input = get_input();
-            if (strcmp(input, "") == 0)
-                printf("<no message sent>\n");
-            else
-                send_message(sess, ctx.active_channel, input);
-            free(input);
-            */
             send_message(sess, ctx.active_channel);
             input_wait = 0;
             print_new_messages();
