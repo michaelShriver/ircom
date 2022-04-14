@@ -180,6 +180,7 @@ int main(int argc, char **argv)
             char *input;
             input_wait = 1;
 
+            /*
             show_prompt(ctx);
             input = get_input();
             if (strcmp(input, "") == 0)
@@ -187,6 +188,8 @@ int main(int argc, char **argv)
             else
                 send_message(sess, ctx.active_channel, input);
             free(input);
+            */
+            send_message(sess, ctx.active_channel);
             input_wait = 0;
             print_new_messages();
         }

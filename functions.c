@@ -8,6 +8,7 @@ bufptr *init_buffer(char *channel)
     bufptr *channel_buffer = malloc(sizeof(struct bufptr));
     channel_buffer->head = channel_buffer->curr = (struct bufline*) malloc(sizeof(struct bufline));
     channel_buffer->channel = bufchan;
+    channel_buffer->nickwidth = 0;
     channel_buffer->curr->prev = NULL;
     channel_buffer->curr->next = NULL;
     channel_buffer->curr->message = NULL;
@@ -54,30 +55,30 @@ int channel_isjoined(char *channel)
 }
 
 /* Add a message to the end of the message buffer, return a pointer to new entry */
-bufline *add_to_buffer(bufline *msgbuffer, char *cmsg)
+bufline *add_to_buffer(bufptr *msgbuffer, char *cmsg)
 {
     char *messageline = (char*)malloc(sizeof(char) * (strlen(cmsg) + 1));
     strcpy(messageline, cmsg);
 
     /* Ensure we are at the end of the buffer */
-    while (msgbuffer->next != NULL)
-        msgbuffer = msgbuffer->next;
+    while (msgbuffer->curr->next != NULL)
+        msgbuffer->curr = msgbuffer->curr->next;
 
     /* Handle the first node in the message buffer */
-    if (msgbuffer->message == NULL)
+    if (msgbuffer->curr->message == NULL)
     {
-        msgbuffer->prev = NULL;
-        msgbuffer->next = NULL;
-        msgbuffer->message = messageline;
-        msgbuffer->isread = 0;
+        msgbuffer->curr->prev = NULL;
+        msgbuffer->curr->next = NULL;
+        msgbuffer->curr->message = messageline;
+        msgbuffer->curr->isread = 0;
 
-        return msgbuffer;
+        return msgbuffer->curr;
     }
 
     /* Add a new message to the end of the buffer */
     bufline *newmsg = (struct bufline*) malloc(sizeof(struct bufline));
-    msgbuffer->next = newmsg;
-    newmsg->prev = msgbuffer;
+    msgbuffer->curr->next = newmsg;
+    newmsg->prev = msgbuffer->curr;
     newmsg->next = NULL;
     newmsg->message = messageline;
     newmsg->isread = 0;
@@ -86,18 +87,34 @@ bufline *add_to_buffer(bufline *msgbuffer, char *cmsg)
 }
 
 /* Send a message to the channel, and add it to my buffer */
-void send_message(irc_session_t *s, char *channel, char *message)
+// void send_message(irc_session_t *s, char *channel, char *message)
+void send_message(irc_session_t *s, char *channel)
 {
     irc_ctx_t * ctx = (irc_ctx_t *) irc_get_ctx (s);
-
-    int size = sizeof(char) * (strlen(ctx->nick) + strlen(message) + 4);
-    char *bufferline = (char *)malloc(size);
+    char *input;
+    char nickbuf[128];
     bufptr *message_buffer = channel_buffer(channel); //CHANGE THIS AND BELOW
+    snprintf(nickbuf, 128, "[%s]", ctx->nick);
+    message_buffer->nickwidth = strlen(nickbuf) > message_buffer->nickwidth ? strlen(nickbuf) : message_buffer->nickwidth;
 
-    snprintf(bufferline, size, "[%s] %s", ctx->nick, message);
-    irc_cmd_msg(s, channel, message);
-    message_buffer->curr = add_to_buffer(message_buffer->curr, bufferline);
+    printf("%-*s ", message_buffer->nickwidth, nickbuf);
+    input = get_input();
+    if (strcmp(input, "") == 0)
+    {
+        free(input);
+        printf("<no message sent>\n");
+        return;
+    }
+
+
+    int size = sizeof(char) * (strlen(ctx->nick) + strlen(input) + message_buffer->nickwidth);
+    char *bufferline = (char *)malloc(size);
+
+    snprintf(bufferline, size, "%-*s %s", message_buffer->nickwidth, nickbuf, input);
+    irc_cmd_msg(s, channel, input);
+    message_buffer->curr = add_to_buffer(message_buffer, bufferline);
     message_buffer->curr->isread = 1;
+    free(input);
     free(bufferline);
 }
 
@@ -112,7 +129,7 @@ void send_action(irc_session_t *s, char *action)
 
     snprintf(bufferline, size, "<%s %s>", ctx->nick, action);
     irc_cmd_me(s, ctx->active_channel, action);
-    message_buffer->curr = add_to_buffer(message_buffer->curr, bufferline);
+    message_buffer->curr = add_to_buffer(message_buffer, bufferline);
     message_buffer->curr->isread = 1;
     free(bufferline);
 }
@@ -128,7 +145,7 @@ void addlog (const char * fmt, ...)
     vsnprintf (buf, sizeof(buf), fmt, va_alist);
     va_end (va_alist);
 
-    server_buffer->curr = add_to_buffer(server_buffer->curr, buf);
+    server_buffer->curr = add_to_buffer(server_buffer, buf);
 
     if ( (fp = fopen ("irctest.log", "ab")) != 0 )
     {
@@ -159,7 +176,9 @@ void exit_cleanup()
 /* custom functions for testing */
 void show_prompt(irc_ctx_t ctx)
 {
-    printf("[%s] ", ctx.nick);
+    char nickbuf[128];
+    snprintf(nickbuf, 128, "[%s]", ctx.nick);
+    printf("%-*s ", strlen(nickbuf)+2, nickbuf);
 }
 
 char * get_input()

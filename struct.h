@@ -20,6 +20,7 @@ struct bufptr
 {
     struct bufptr *prevbuf;
     char *channel;
+    int nickwidth;
     bufline *head;
     bufline *curr;
     struct bufptr *nextbuf;
