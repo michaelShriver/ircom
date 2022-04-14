@@ -92,6 +92,9 @@ int main(int argc, char **argv)
         exit(1);
     }
 
+    /* Set termstate to raw */
+    cfmakeraw(&termstate_raw);
+
     /* Wait for the message buffer to be initialized with valid data */
     while (buffer_read_ptr->message == NULL)
     {
