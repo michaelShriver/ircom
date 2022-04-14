@@ -21,11 +21,13 @@ int main(int argc, char **argv)
     char keycmd;
     pthread_t event_thread;
 
-    /* Save terminal state, and restore on exit */
+    /* Save terminal state */
     ioctl(0, TIOCGWINSZ, &ttysize);
     struct termios termstate_raw;
     tcgetattr(0, &termstate);
     memcpy(&termstate_raw, &termstate, sizeof(termstate_raw)); 
+
+    /* On exit, clean up memory and reset terminal state */
     atexit(exit_cleanup);
 
     /* Zero out memory allocation for callbacks struct */
@@ -98,6 +100,7 @@ int main(int argc, char **argv)
     /* Wait for the message buffer to be initialized with valid data */
     while (buffer_read_ptr->message == NULL)
     {
+        sleep(.1);
     }
 
     while (1)
@@ -106,14 +109,35 @@ int main(int argc, char **argv)
         char stroke = getchar();
         tcsetattr(0, TCSANOW, &termstate);
 
-        if (stroke == 'c')
+        if (stroke == '<')
+        {
+            strcpy(ctx.active_channel, channel_buffer(ctx.active_channel)->prevbuf->channel);
+            buffer_read_ptr = channel_buffer(ctx.active_channel)->curr;
+            printf("<now chatting in \'%s\'>\n", ctx.active_channel);
+        }
+        else if (stroke == '>')
+        {
+            if (channel_buffer(ctx.active_channel)->nextbuf == NULL)
+            {
+                strcpy(ctx.active_channel, server_buffer->channel);
+                buffer_read_ptr = server_buffer->curr;
+                printf("<now chatting in \'%s\'>\n", ctx.active_channel);
+            }
+            else
+            {
+                strcpy(ctx.active_channel, channel_buffer(ctx.active_channel)->nextbuf->channel);
+                buffer_read_ptr = channel_buffer(ctx.active_channel)->curr;
+                printf("<now chatting in \'%s\'>\n", ctx.active_channel);
+            }
+        }
+        else if (stroke == 'c')
             printf("\e[1;1H\e[2J");
         else if (stroke == 'e')
         {
             char *input;
             input_wait = 1;
 
-            printf(":emote> ");
+            printf("%-*s", channel_buffer(ctx.active_channel)->nickwidth, ":emote> ");
             input = get_input();
             send_action(sess, input);
             free(input);
@@ -125,7 +149,7 @@ int main(int argc, char **argv)
             char *input;
             input_wait = 1;
 
-            printf(":channel> ");
+            printf("%-*s", channel_buffer(ctx.active_channel)->nickwidth, ":channel> ");
             input = get_input();
             if (channel_isjoined(input))
             {
@@ -146,7 +170,7 @@ int main(int argc, char **argv)
             char *input;
             input_wait = 1;
 
-            printf(":peek> ");
+            printf("%-*s", channel_buffer(ctx.active_channel)->nickwidth, ":peek> ");
             input = get_input();
             peek_channel(input);
             free(input);
@@ -170,7 +194,7 @@ int main(int argc, char **argv)
             int lines;
             input_wait = 1;
 
-            printf(":lines> ");
+            printf("%-*s", channel_buffer(ctx.active_channel)->nickwidth, ":lines> ");
             scanf("%d", &lines);
             (void)getchar();
             rewind_buffer(buffer_read_ptr, lines);

@@ -15,6 +15,8 @@ bufptr *init_buffer(char *channel)
     channel_buffer->curr->isread = NULL;
     channel_buffer->prevbuf = NULL;
     channel_buffer->nextbuf = NULL;
+    if (server_buffer != NULL)
+        server_buffer->prevbuf = channel_buffer;
 
     return channel_buffer;
 }
@@ -23,6 +25,9 @@ bufptr *init_buffer(char *channel)
 bufptr *channel_buffer(char *channel)
 {
     bufptr *search_ptr = server_buffer;
+
+    if(strcmp(search_ptr->channel, channel) == 0)
+        return search_ptr;
 
     while (search_ptr->nextbuf != NULL)
     {
@@ -94,7 +99,7 @@ void send_message(irc_session_t *s, char *channel)
     char *input;
     char nickbuf[128];
     bufptr *message_buffer = channel_buffer(channel); //CHANGE THIS AND BELOW
-    snprintf(nickbuf, 128, "[%s]", ctx->nick);
+    snprintf(nickbuf, 128, "\e[36;1m[%s]\e[0m", ctx->nick);
     message_buffer->nickwidth = strlen(nickbuf) > message_buffer->nickwidth ? strlen(nickbuf) : message_buffer->nickwidth;
 
     printf("%-*s ", message_buffer->nickwidth, nickbuf);
@@ -123,11 +128,11 @@ void send_action(irc_session_t *s, char *action)
 {
     irc_ctx_t * ctx = (irc_ctx_t *) irc_get_ctx (s);
 
-    int size = sizeof(char) * (strlen(ctx->nick) + strlen(action) + 4);
+    int size = sizeof(char) * (strlen(ctx->nick) + strlen(action) + 15);
     char *bufferline = (char *)malloc(size);
     bufptr *message_buffer = channel_buffer(ctx->active_channel);
 
-    snprintf(bufferline, size, "<%s %s>", ctx->nick, action);
+    snprintf(bufferline, size, "\e[32;1m<%s %s>\e[0m", ctx->nick, action);
     irc_cmd_me(s, ctx->active_channel, action);
     message_buffer->curr = add_to_buffer(message_buffer, bufferline);
     message_buffer->curr->isread = 1;
@@ -264,9 +269,12 @@ void clear_buffer(bufptr *buffer)
         buffer_entry->next = NULL;
     }
 
-    buffer->prevbuf->nextbuf = buffer->nextbuf;
+    if (buffer != server_buffer)
+        buffer->prevbuf->nextbuf = buffer->nextbuf;
     if (buffer->nextbuf != NULL)
         buffer->nextbuf->prevbuf = buffer->prevbuf;
+    else if (buffer->nextbuf == NULL)
+        server_buffer->prevbuf = buffer->prevbuf;
     free(buffer->head->message);
     free(buffer->head);
     free(buffer->channel);
@@ -278,27 +286,23 @@ void clear_all()
     bufptr *search_ptr = server_buffer;
 
     while (search_ptr->nextbuf != NULL)
+    {
         search_ptr = search_ptr->nextbuf;
-
-    while (search_ptr->prevbuf != NULL)
-    {
-        search_ptr = search_ptr->prevbuf;
-        clear_buffer(search_ptr->nextbuf);
+        clear_buffer(search_ptr->prevbuf);
     }
 
-    /* Clean up the server_buffer */
-    while(server_buffer->curr->prev != NULL)
+    while(search_ptr->curr->prev != NULL)
     {
-        server_buffer->curr = server_buffer->curr->prev;
-        free(server_buffer->curr->next->message);
-        free(server_buffer->curr->next);
-        server_buffer->curr->next = NULL;
+        search_ptr->curr = search_ptr->curr->prev;
+        free(search_ptr->curr->next->message);
+        free(search_ptr->curr->next);
+        search_ptr->curr->next = NULL;
     }
 
-    free(server_buffer->head->message);
-    free(server_buffer->head);
-    free(server_buffer->channel);
-    free(server_buffer);
+    free(search_ptr->head->message);
+    free(search_ptr->head);
+    free(search_ptr->channel);
+    free(search_ptr);
 
     return;
 }
