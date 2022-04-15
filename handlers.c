@@ -86,7 +86,12 @@ void event_part(irc_session_t * session, const char * event, const char * origin
     return;
 }
 
-void event_connect (irc_session_t * session, const char * event, const char * origin, const char ** params, unsigned int count)
+void event_topic(irc_session_t *session, const char *event, const char *origin, const char **params, unsigned int count)
+{
+    char chanbuf[128];
+}
+
+void event_connect(irc_session_t * session, const char * event, const char * origin, const char ** params, unsigned int count)
 {
     irc_ctx_t * ctx = (irc_ctx_t *) irc_get_ctx (session);
     dump_event (session, event, origin, params, count);
