@@ -8,6 +8,7 @@ bufptr *init_buffer(char *channel)
     bufptr *channel_buffer = malloc(sizeof(struct bufptr));
     channel_buffer->head = channel_buffer->curr = (struct bufline*) malloc(sizeof(struct bufline));
     channel_buffer->channel = bufchan;
+    channel_buffer->topic = NULL;
     channel_buffer->nickwidth = 0;
     channel_buffer->curr->prev = NULL;
     channel_buffer->curr->next = NULL;
@@ -183,7 +184,7 @@ void show_prompt(irc_ctx_t ctx)
 {
     char nickbuf[128];
     snprintf(nickbuf, 128, "[%s]", ctx.nick);
-    printf("%-*s ", strlen(nickbuf)+2, nickbuf);
+    printf("%-*s ", (int)strlen(nickbuf)+2, nickbuf);
 }
 
 char * get_input()

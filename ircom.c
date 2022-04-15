@@ -39,7 +39,7 @@ int main(int argc, char **argv)
     callbacks.event_quit = dump_event;
     callbacks.event_part = event_part;
     callbacks.event_mode = dump_event;
-    callbacks.event_topic = dump_event;
+    callbacks.event_topic = event_topic;
     callbacks.event_kick = dump_event;
     callbacks.event_channel = event_channel;
     callbacks.event_privmsg = event_privmsg;
@@ -191,12 +191,14 @@ int main(int argc, char **argv)
         }
         else if (stroke == 'R')
         {
+            char *input;
             int lines;
             input_wait = 1;
 
             printf("%-*s", channel_buffer(ctx.active_channel)->nickwidth, ":lines> ");
-            scanf("%d", &lines);
-            (void)getchar();
+            input = get_input();
+            sscanf(input, "%d", &lines);
+            free(input);
             rewind_buffer(buffer_read_ptr, lines);
             input_wait = 0;
             print_new_messages();
