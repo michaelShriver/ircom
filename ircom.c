@@ -115,7 +115,15 @@ int main(int argc, char **argv)
             {
                 strcpy(ctx.active_channel, channel_buffer(ctx.active_channel)->prevbuf->channel);
                 buffer_read_ptr = channel_buffer(ctx.active_channel)->curr;
-                printf("<now chatting in \'%s\'>\n", ctx.active_channel);
+                if(channel_buffer(ctx.active_channel) == server_buffer)
+                {
+                    printf("[server messages]\n\n");
+                }
+                else
+                {       
+                    printf("[you are in \'%s\']\n\n", ctx.active_channel);
+                    irc_cmd_names(sess, ctx.active_channel);
+                }
                 break;
             }
             case '>':
@@ -124,13 +132,14 @@ int main(int argc, char **argv)
                 {
                     strcpy(ctx.active_channel, server_buffer->channel);
                     buffer_read_ptr = server_buffer->curr;
-                    printf("<now chatting in \'%s\'>\n", ctx.active_channel);
+                    printf("[server messages]\n\n");
                 }
                 else
                 {
                     strcpy(ctx.active_channel, channel_buffer(ctx.active_channel)->nextbuf->channel);
                     buffer_read_ptr = channel_buffer(ctx.active_channel)->curr;
-                    printf("<now chatting in \'%s\'>\n", ctx.active_channel);
+                    printf("[you are in \'%s\']\n\n", ctx.active_channel);
+                    irc_cmd_names(sess, ctx.active_channel);
                 }
                 break;
             }
@@ -161,7 +170,8 @@ int main(int argc, char **argv)
                 {
                     strcpy(ctx.active_channel, input);
                     buffer_read_ptr = channel_buffer(ctx.active_channel)->curr;
-                    printf("<now chatting in \'%s\'>\n", ctx.active_channel);
+                    printf("[you are in \'%s\']\n\n", ctx.active_channel);
+                    irc_cmd_names(sess, ctx.active_channel);
                 }
                 else
                 {
@@ -211,6 +221,13 @@ int main(int argc, char **argv)
                 rewind_buffer(buffer_read_ptr, lines);
                 input_wait = 0;
                 print_new_messages();
+                break;
+            }
+            case 'w':
+            {
+                printf("[you are in \'%s\']\n\n", ctx.active_channel);
+                irc_cmd_names(sess, ctx.active_channel);
+
                 break;
             }
             case '\r':

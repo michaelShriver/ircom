@@ -272,7 +272,7 @@ void clear_buffer(bufptr *buffer)
     }
 
     if (buffer != server_buffer)
-        buffer->prevbuf->nextbuf = buffer->nextbuf;
+       buffer->prevbuf->nextbuf = buffer->nextbuf;
     if (buffer->nextbuf != NULL)
         buffer->nextbuf->prevbuf = buffer->prevbuf;
     else if (buffer->nextbuf == NULL)
