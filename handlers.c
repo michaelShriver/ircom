@@ -256,7 +256,6 @@ void event_numeric (irc_session_t * session, unsigned int event, const char * or
             if(strcmp(ctx->active_channel, params[2]) == 0)
             {
                 int cols = (ttysize.ws_col / 20);
-                //char *nicks = malloc((sizeof(char) * strlen(params[3])) + 1);
                 int nicksize = strlen(params[3]) + 1;
                 char nicks[nicksize];
                 strlcpy(nicks, params[3], nicksize);
@@ -264,13 +263,21 @@ void event_numeric (irc_session_t * session, unsigned int event, const char * or
 
                 while(nickbuf != NULL)
                 {
-                    printf("%-20s ", nickbuf);
+                    for(int c=0; c < cols; c++)
+                    {
+                        if(nickbuf != NULL)
+                        {
+                            printf("%-20s ", nickbuf);
+                            nickbuf = strtok(NULL, " ");
+                        }
+                        else
+                            break;
+                    }
+                    printf("\r\n");
 
-                    nickbuf = strtok(NULL, " ");
                 }
                 printf("\r\n");
 
-                //free(nicks);
                 break;
             }
 
