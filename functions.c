@@ -9,6 +9,7 @@ bufptr *init_buffer(char *channel)
     channel_buffer->head = channel_buffer->curr = (struct bufline*) malloc(sizeof(struct bufline));
     channel_buffer->channel = bufchan;
     channel_buffer->topic = NULL;
+    channel_buffer->topicsetby = NULL;
     channel_buffer->nickwidth = 0;
     channel_buffer->curr->prev = NULL;
     channel_buffer->curr->next = NULL;
@@ -279,6 +280,8 @@ void clear_buffer(bufptr *buffer)
     free(buffer->head->message);
     free(buffer->head);
     free(buffer->channel);
+    free(buffer->topic);
+    free(buffer->topicsetby);
     free(buffer);
 }
 
@@ -303,6 +306,8 @@ void clear_all()
     free(search_ptr->head->message);
     free(search_ptr->head);
     free(search_ptr->channel);
+    free(search_ptr->topic);
+    free(search_ptr->topicsetby);
     free(search_ptr);
 
     return;

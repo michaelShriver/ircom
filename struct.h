@@ -21,6 +21,7 @@ struct bufptr
     struct bufptr *prevbuf;
     char *channel;
     char *topic;
+    char *topicsetby;
     int nickwidth;
     bufline *head;
     bufline *curr;

@@ -42,6 +42,28 @@ void event_join (irc_session_t * session, const char * event, const char * origi
     message_buffer->curr->isread = strcmp(ctx->active_channel, chanbuf) == 0 ? 0 : 1;
 
     print_new_messages();
+
+    // irc_cmd_topic(session, ctx->active_channel, NULL);
+}
+
+void event_quit(irc_session_t * session, const char * event, const char * origin, const char ** params, unsigned int count)
+{
+    char nickbuf[128];
+    char timebuf[9];
+    time_t now = time(&now);
+    struct tm *utc = gmtime(&now);
+
+    strftime(timebuf, 9, "%H:%M:%S", utc);
+    irc_target_get_nick (origin, nickbuf, sizeof(nickbuf));
+    irc_ctx_t * ctx = (irc_ctx_t *) irc_get_ctx (session);
+
+    char partmsg[1200];
+    snprintf(partmsg, 1200, "\e[33;1m[%s] %s has quit. (%s)\e[0m", timebuf, nickbuf, params[0]);
+    server_buffer->curr = add_to_buffer(server_buffer, partmsg);
+
+    print_new_messages();
+
+    return;
 }
 
 void event_part(irc_session_t * session, const char * event, const char * origin, const char ** params, unsigned int count)
@@ -89,11 +111,40 @@ void event_part(irc_session_t * session, const char * event, const char * origin
 void event_topic(irc_session_t *session, const char *event, const char *origin, const char **params, unsigned int count)
 {
     char chanbuf[128];
+    char nickbuf[128];
+
+    irc_ctx_t *ctx = (irc_ctx_t *)irc_get_ctx(session);
+    irc_target_get_nick(origin, nickbuf, sizeof(nickbuf));
+    strncpy(chanbuf, params[0], sizeof(chanbuf));
+    
+    if(channel_isjoined(chanbuf))
+    {
+        char topicmsg[1186];
+        char timebuf[9];
+        time_t now = time(&now);
+        struct tm *utc = gmtime(&now);
+        strftime(timebuf, 9, "%H:%M:%S", utc);
+        bufptr *message_buffer = channel_buffer(chanbuf);
+        char *nick = malloc((sizeof(char)*strlen(nickbuf))+1);
+        char *topic = malloc((sizeof(char)*strlen(params[1]))+1);
+        strcpy(nick, nickbuf);
+        strcpy(topic, params[1]);
+
+        message_buffer->topic = topic;
+        message_buffer->topicsetby = nick;
+
+        snprintf(topicmsg, 1186, "\e[33;1m[%s] TOPIC: %s (%s)\e[0m", timebuf, topic, nick);
+        add_to_buffer(message_buffer, topicmsg);
+
+        print_new_messages();
+    }
+
+    return;
 }
 
 void event_connect(irc_session_t * session, const char * event, const char * origin, const char ** params, unsigned int count)
 {
-    irc_ctx_t * ctx = (irc_ctx_t *) irc_get_ctx (session);
+    irc_ctx_t *ctx = (irc_ctx_t *)irc_get_ctx(session);
     dump_event (session, event, origin, params, count);
 
     if(ctx->initial_chan != NULL)
@@ -117,7 +168,7 @@ void event_channel (irc_session_t * session, const char * event, const char * or
 
     strcpy(chanbuf, params[0]);
     strcpy(msgbuf, params[1]);
-    irc_target_get_nick (origin, nickbuf, sizeof(nickbuf));
+    irc_target_get_nick(origin, nickbuf, sizeof(nickbuf));
     bufptr *message_buffer = channel_buffer(chanbuf);
     snprintf(nick, 128, "\e[36;1m[%s]\e[0m", nickbuf);
     message_buffer->nickwidth = (strlen(nick)) > message_buffer->nickwidth ? (strlen(nick)) : message_buffer->nickwidth;

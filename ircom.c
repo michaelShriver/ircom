@@ -36,7 +36,7 @@ int main(int argc, char **argv)
     callbacks.event_connect = event_connect;
     callbacks.event_join = event_join;
     callbacks.event_nick = dump_event;
-    callbacks.event_quit = dump_event;
+    callbacks.event_quit = event_quit;
     callbacks.event_part = event_part;
     callbacks.event_mode = dump_event;
     callbacks.event_topic = event_topic;
@@ -100,7 +100,7 @@ int main(int argc, char **argv)
     /* Wait for the message buffer to be initialized with valid data */
     while (buffer_read_ptr->message == NULL)
     {
-        sleep(.1);
+        sleep(1);
     }
 
     while (1)
