@@ -42,8 +42,6 @@ void event_join (irc_session_t * session, const char * event, const char * origi
     message_buffer->curr->isread = strcmp(ctx->active_channel, chanbuf) == 0 ? 0 : 1;
 
     print_new_messages();
-
-    // irc_cmd_topic(session, ctx->active_channel, NULL);
 }
 
 void event_quit(irc_session_t * session, const char * event, const char * origin, const char ** params, unsigned int count)
@@ -115,7 +113,7 @@ void event_topic(irc_session_t *session, const char *event, const char *origin, 
 
     irc_ctx_t *ctx = (irc_ctx_t *)irc_get_ctx(session);
     irc_target_get_nick(origin, nickbuf, sizeof(nickbuf));
-    strncpy(chanbuf, params[0], sizeof(chanbuf));
+    strlcpy(chanbuf, params[0], sizeof(chanbuf));
     
     if(channel_isjoined(chanbuf))
     {
@@ -126,12 +124,26 @@ void event_topic(irc_session_t *session, const char *event, const char *origin, 
         strftime(timebuf, 9, "%H:%M:%S", utc);
         bufptr *message_buffer = channel_buffer(chanbuf);
         char *nick = malloc((sizeof(char)*strlen(nickbuf))+1);
-        char *topic = malloc((sizeof(char)*strlen(params[1]))+1);
+        char *topic = irc_color_strip_from_mirc(params[1]);
         strcpy(nick, nickbuf);
-        strcpy(topic, params[1]);
 
-        message_buffer->topic = topic;
-        message_buffer->topicsetby = nick;
+        if(message_buffer->topic != NULL)
+        {
+            char *oldtopic = message_buffer->topic;
+            message_buffer->topic = topic;
+            free(oldtopic);
+        }
+        else
+            message_buffer->topic = topic;
+
+        if(message_buffer->topicsetby != NULL)
+        {
+            char *oldtopicsetby = message_buffer->topicsetby;
+            message_buffer->topicsetby = nick;
+            free(oldtopicsetby);
+        }
+        else
+            message_buffer->topicsetby = nick;
 
         snprintf(topicmsg, 1186, "\e[33;1m[%s] TOPIC: %s (%s)\e[0m", timebuf, topic, nick);
         add_to_buffer(message_buffer, topicmsg);
@@ -157,8 +169,8 @@ void event_channel (irc_session_t * session, const char * event, const char * or
     char nickbuf[128];
     char nick[128];
     char chanbuf[128];
-    char msgbuf[1024];
-    char messageline[1156];
+    //char msgbuf[1024];
+    char messageline[2048];
 
     if ( count != 2 )
         return;
@@ -167,35 +179,38 @@ void event_channel (irc_session_t * session, const char * event, const char * or
         return;
 
     strcpy(chanbuf, params[0]);
-    strcpy(msgbuf, params[1]);
+    //strcpy(msgbuf, params[1]);
+    char *msgbuf = irc_color_strip_from_mirc(params[1]);
     irc_target_get_nick(origin, nickbuf, sizeof(nickbuf));
     bufptr *message_buffer = channel_buffer(chanbuf);
     snprintf(nick, 128, "\e[36;1m[%s]\e[0m", nickbuf);
     message_buffer->nickwidth = (strlen(nick)) > message_buffer->nickwidth ? (strlen(nick)) : message_buffer->nickwidth;
 
-    snprintf(messageline, 1156, "%-*s %s", message_buffer->nickwidth, nick, msgbuf);
+    snprintf(messageline, 2048, "%-*s %s", message_buffer->nickwidth, nick, msgbuf);
     message_buffer->curr = add_to_buffer(message_buffer, messageline);
     message_buffer->curr->isread = strcmp(ctx->active_channel, chanbuf) == 0 ? 0 : 1;
 
     print_new_messages();
-
     return;
 }
 
 void event_action(irc_session_t * session, const char * event, const char * origin, const char ** params, unsigned int count)
 {
     char nickbuf[128];
-    char actionbuf[256];
+    char actionbuf[1024];
     char chanbuf[128];
+    char *action = irc_color_strip_from_mirc(params[1]);
 
     strcpy(chanbuf, params[0]);
     bufptr *message_buffer = channel_buffer(chanbuf);
 
     irc_target_get_nick (origin, nickbuf, sizeof(nickbuf));
-    snprintf(actionbuf, 256, "\e[32;1m<%s %s>\e[0m", nickbuf, params[1]);
+    snprintf(actionbuf, 1024, "\e[32;1m<%s %s>\e[0m", nickbuf, action);
+    free(action);
     message_buffer->curr = add_to_buffer(message_buffer, actionbuf);
 
     print_new_messages();
+    return;
 }
 
 void event_privmsg (irc_session_t * session, const char * event, const char * origin, const char ** params, unsigned int count)
@@ -209,10 +224,76 @@ void event_privmsg (irc_session_t * session, const char * event, const char * or
 
 void event_numeric (irc_session_t * session, unsigned int event, const char * origin, const char ** params, unsigned int count)
 {
-    char buf[24];
-    sprintf (buf, "%d", event);
+    switch(event)
+    {
+        case 332:
+        {
+            char chanbuf[128];
 
-    dump_event (session, buf, origin, params, count);
+            irc_ctx_t *ctx = (irc_ctx_t *)irc_get_ctx(session);
+            strlcpy(chanbuf, params[1], sizeof(chanbuf));
+    
+            char topicmsg[1186];
+            char timebuf[9];
+            time_t now = time(&now);
+            struct tm *utc = gmtime(&now);
+            strftime(timebuf, 9, "%H:%M:%S", utc);
+            bufptr *message_buffer = channel_buffer(chanbuf);
+            char *topic = irc_color_strip_from_mirc(params[2]);
+
+            message_buffer->topic = topic;
+
+            snprintf(topicmsg, 1186, "\e[33;1m[%s] TOPIC: %s\e[0m", timebuf, topic);
+            add_to_buffer(message_buffer, topicmsg);
+
+            print_new_messages();
+            break;
+        }
+        case 353:
+        {
+            //printf("%d %s %u %s %s\r\n", event, origin, count, params[2], params[3]);
+            irc_ctx_t *ctx = (irc_ctx_t *)irc_get_ctx(session);
+            if(strcmp(ctx->active_channel, params[2]) == 0)
+            {
+                int cols = (ttysize.ws_col / 20);
+                //char *nicks = malloc((sizeof(char) * strlen(params[3])) + 1);
+                int nicksize = strlen(params[3]) + 1;
+                char nicks[nicksize];
+                strlcpy(nicks, params[3], nicksize);
+                char *nickbuf = strtok(nicks, " ");
+
+                while(nickbuf != NULL)
+                {
+                    printf("%-20s ", nickbuf);
+
+                    nickbuf = strtok(NULL, " ");
+                }
+                printf("\r\n");
+
+                //free(nicks);
+                break;
+            }
+
+            // break;
+        }
+        case 372:
+        case 375:
+        case 376:
+        {
+            char *msgbuf = irc_color_strip_from_mirc(params[1]);
+            add_to_buffer(server_buffer, msgbuf);
+            free(msgbuf);
+
+            print_new_messages();
+            break;
+        }
+        default:
+        {
+            char buf[24];
+            sprintf (buf, "%d", event);
+            dump_event (session, buf, origin, params, count);
+        }
+    }
 }
 
 /* A placeholder function for events we have not implemented */

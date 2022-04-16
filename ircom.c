@@ -109,108 +109,124 @@ int main(int argc, char **argv)
         char stroke = getchar();
         tcsetattr(0, TCSANOW, &termstate);
 
-        if (stroke == '<')
+        switch(stroke)
         {
-            strcpy(ctx.active_channel, channel_buffer(ctx.active_channel)->prevbuf->channel);
-            buffer_read_ptr = channel_buffer(ctx.active_channel)->curr;
-            printf("<now chatting in \'%s\'>\n", ctx.active_channel);
-        }
-        else if (stroke == '>')
-        {
-            if (channel_buffer(ctx.active_channel)->nextbuf == NULL)
+            case '<':
             {
-                strcpy(ctx.active_channel, server_buffer->channel);
-                buffer_read_ptr = server_buffer->curr;
-                printf("<now chatting in \'%s\'>\n", ctx.active_channel);
-            }
-            else
-            {
-                strcpy(ctx.active_channel, channel_buffer(ctx.active_channel)->nextbuf->channel);
+                strcpy(ctx.active_channel, channel_buffer(ctx.active_channel)->prevbuf->channel);
                 buffer_read_ptr = channel_buffer(ctx.active_channel)->curr;
                 printf("<now chatting in \'%s\'>\n", ctx.active_channel);
+                break;
             }
-        }
-        else if (stroke == 'c')
-            printf("\e[1;1H\e[2J");
-        else if (stroke == 'e')
-        {
-            char *input;
-            input_wait = 1;
-
-            printf("%-*s", channel_buffer(ctx.active_channel)->nickwidth, ":emote> ");
-            input = get_input();
-            send_action(sess, input);
-            free(input);
-            input_wait = 0;
-            print_new_messages();
-        }
-        else if (stroke == 'g')
-        {
-            char *input;
-            input_wait = 1;
-
-            printf("%-*s", channel_buffer(ctx.active_channel)->nickwidth, ":channel> ");
-            input = get_input();
-            if (channel_isjoined(input))
+            case '>':
             {
-                strcpy(ctx.active_channel, input);
-                buffer_read_ptr = channel_buffer(ctx.active_channel)->curr;
-                printf("<now chatting in \'%s\'>\n", ctx.active_channel);
+                if (channel_buffer(ctx.active_channel)->nextbuf == NULL)
+                {
+                    strcpy(ctx.active_channel, server_buffer->channel);
+                    buffer_read_ptr = server_buffer->curr;
+                    printf("<now chatting in \'%s\'>\n", ctx.active_channel);
+                }
+                else
+                {
+                    strcpy(ctx.active_channel, channel_buffer(ctx.active_channel)->nextbuf->channel);
+                    buffer_read_ptr = channel_buffer(ctx.active_channel)->curr;
+                    printf("<now chatting in \'%s\'>\n", ctx.active_channel);
+                }
+                break;
             }
-            else
+            case 'c':
             {
-                irc_cmd_join(sess, input, 0);
+                printf("\e[1;1H\e[2J");
+                break;
             }
-            free(input);
-            input_wait = 0;
-            print_new_messages();
-        }
-        else if (stroke == 'p')
-        {
-            char *input;
-            input_wait = 1;
-
-            printf("%-*s", channel_buffer(ctx.active_channel)->nickwidth, ":peek> ");
-            input = get_input();
-            peek_channel(input);
-            free(input);
-            input_wait = 0;
-            print_new_messages();
-        }
-        else if (stroke == 'P')
-        {
-            irc_cmd_part(sess, ctx.active_channel);
-        }
-        else if (stroke == 'q' || stroke == 3)
-        {
-            exit(0);
-        }
-        else if (stroke == 'r')
-        {
-            rewind_buffer(buffer_read_ptr, -1);
-        }
-        else if (stroke == 'R')
-        {
-            char *input;
-            int lines;
-            input_wait = 1;
-
-            printf("%-*s", channel_buffer(ctx.active_channel)->nickwidth, ":lines> ");
-            input = get_input();
-            sscanf(input, "%d", &lines);
-            free(input);
-            rewind_buffer(buffer_read_ptr, lines);
-            input_wait = 0;
-            print_new_messages();
-        }
-        else if (stroke == '\r' || stroke == ' ')
-        {
-            char *input;
-            input_wait = 1;
-
-            send_message(sess, ctx.active_channel);
-            input_wait = 0;
-            print_new_messages();
+            case 'e':
+            {
+                char *input;
+                input_wait = 1;
+                printf("%-*s", channel_buffer(ctx.active_channel)->nickwidth, ":emote> ");
+                input = get_input();
+                send_action(sess, input);
+                free(input);
+                input_wait = 0;
+                print_new_messages();
+                break;
+            }
+            case 'g':
+            {
+                char *input;
+                input_wait = 1;
+                printf("%-*s", channel_buffer(ctx.active_channel)->nickwidth, ":channel> ");
+                input = get_input();
+                if (channel_isjoined(input))
+                {
+                    strcpy(ctx.active_channel, input);
+                    buffer_read_ptr = channel_buffer(ctx.active_channel)->curr;
+                    printf("<now chatting in \'%s\'>\n", ctx.active_channel);
+                }
+                else
+                {
+                    irc_cmd_join(sess, input, 0);
+                }
+                free(input);
+                input_wait = 0;
+                print_new_messages();
+                break;
+            }
+            case 'p':
+            {
+                char *input;
+                input_wait = 1;
+                printf("%-*s", channel_buffer(ctx.active_channel)->nickwidth, ":peek> ");
+                input = get_input();
+                peek_channel(input);
+                free(input);
+                input_wait = 0;
+                print_new_messages();
+                break;
+            }
+            case 'P':
+            {
+                irc_cmd_part(sess, ctx.active_channel);
+                break;
+            }
+            case 'q':
+            case 3:
+            {
+                exit(0);
+            }
+            case 'r':
+            {
+                rewind_buffer(buffer_read_ptr, -1);
+                break;
+            }
+            case 'R':
+            {
+                char *input;
+                int lines;
+                input_wait = 1;
+                printf("%-*s", channel_buffer(ctx.active_channel)->nickwidth, ":lines> ");
+                input = get_input();
+                sscanf(input, "%d", &lines);
+                free(input);
+                rewind_buffer(buffer_read_ptr, lines);
+                input_wait = 0;
+                print_new_messages();
+                break;
+            }
+            case '\r':
+            case ' ':
+            {
+                char *input;
+                input_wait = 1;
+                send_message(sess, ctx.active_channel);
+                input_wait = 0;
+                print_new_messages();
+                break;
+            }
+            default:
+            {
+                break;
+            }
         }
     }
 
