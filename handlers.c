@@ -218,11 +218,12 @@ void event_action(irc_session_t * session, const char * event, const char * orig
 
 void event_privmsg (irc_session_t * session, const char * event, const char * origin, const char ** params, unsigned int count)
 {
-    dump_event (session, event, origin, params, count);
+    char nickbuf[128];
+    char *message = irc_color_strip_from_mirc(params[1]);
 
-    printf ("'%s' said me (%s): %s\n",
-        origin ? origin : "someone",
-        params[0], params[1] );
+    irc_target_get_nick (origin, nickbuf, sizeof(nickbuf));
+    printf ("\e[31;1m*%s*\e[0m %s\r\n", origin ? nickbuf : "someone", message);
+    free(message);
 }
 
 void event_numeric (irc_session_t * session, unsigned int event, const char * origin, const char ** params, unsigned int count)
@@ -300,6 +301,11 @@ void event_numeric (irc_session_t * session, unsigned int event, const char * or
             print_new_messages();
             break;
         }
+        //ignore events
+        case 366:
+        {
+            break;
+        }
         default:
         {
             char buf[24];
@@ -318,60 +324,4 @@ void dump_event (irc_session_t * session, const char * event, const char * origi
     buf[0] = '\0';
     strcat(buf, params[count-1]);
     addlog("%s: %s", event, buf);
-}
-
-/* Example functions from irctest.c, for POC */
-void dcc_recv_callback (irc_session_t * session, irc_dcc_t id, int status, void * ctx, const char * data, unsigned int length)
-{
-    static int count = 1;
-    char buf[12];
-
-    switch (status)
-    {
-    case LIBIRC_ERR_CLOSED:
-        printf ("DCC %d: chat closed\n", id);
-        break;
-
-    case 0:
-        if ( !data )
-        {
-            printf ("DCC %d: chat connected\n", id);
-            irc_dcc_msg (session, id, "Hehe");
-        }
-        else
-        {
-            printf ("DCC %d: %s\n", id, data);
-            sprintf (buf, "DCC [%d]: %d", id, count++);
-            irc_dcc_msg (session, id, buf);
-        }
-        break;
-
-    default:
-        printf ("DCC %d: error %s\n", id, irc_strerror(status));
-        break;
-    }
-}
-
-void dcc_file_recv_callback (irc_session_t * session, irc_dcc_t id, int status, void * ctx, const char * data, unsigned int length)
-{
-    if ( status == 0 && length == 0 )
-    {
-        printf ("File sent successfully\n");
-
-        if ( ctx )
-            fclose ((FILE*) ctx);
-    }
-    else if ( status )
-    {
-        printf ("File sent error: %d\n", status);
-
-        if ( ctx )
-            fclose ((FILE*) ctx);
-    }
-    else
-    {
-        if ( ctx )
-            fwrite (data, 1, length, (FILE*) ctx);
-        printf ("File sent progress: %d\n", length);
-    }
 }

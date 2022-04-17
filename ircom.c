@@ -51,9 +51,6 @@ int main(int argc, char **argv)
     callbacks.event_unknown = dump_event;
     callbacks.event_numeric = event_numeric;
 
-    //callbacks.event_dcc_chat_req = irc_event_dcc_chat;
-    //callbacks.event_dcc_send_req = irc_event_dcc_send;
-
     /* Create a new IRC session */
     sess = irc_create_session(&callbacks);
     irc_option_set(sess, LIBIRC_OPTION_SSL_NO_VERIFY);
@@ -148,17 +145,58 @@ int main(int argc, char **argv)
                 printf("\e[1;1H\e[2J");
                 break;
             }
+            case 'd':
+            {
+                input_wait = 1;
+                //take_dump(sess);
+                printf("Do you really want to take a dump of %s? (y/n) ", ctx.active_channel);
+                tcsetattr(0, TCSANOW, &termstate_raw);
+                char ans = getchar();
+                tcsetattr(0, TCSANOW, &termstate);
+
+                switch(ans)
+                {
+                    case 'y':
+                    case 'Y':
+                    {
+                        printf("YES\n");
+                        FILE *dumpfilep;
+                        char dumpfilen[128];
+                        char timebuf[9];
+                        time_t now = time(&now);
+                        struct tm *utc = gmtime(&now);
+                        strftime(timebuf, 9, "%H.%M.%S", utc);
+                        snprintf(dumpfilen, 128, "IRCOM_DUMP_%s_%s.txt", ctx.active_channel, timebuf);
+                        bufline *dump_ptr = channel_buffer(ctx.active_channel)->head;
+
+                        if((dumpfilep=fopen(dumpfilen, "ab")) != 0)
+                        {
+                            while(dump_ptr->next != NULL)
+                            {
+                                fprintf(dumpfilep, "%s\n", dump_ptr->message);
+                                dump_ptr = dump_ptr->next;
+                            }
+                            fprintf(dumpfilep, "%s\n", dump_ptr->message);
+                            fclose(dumpfilep);
+                        }
+                        printf("<dump taken>\n");
+
+                        break;
+                    }
+                    default:
+                    {
+                        printf("NO\n<dump not taken>\n");
+                    }
+                }
+
+                input_wait = 0;
+                print_new_messages();
+                break;
+            }
             case 'e':
             {
-                char *input;
                 input_wait = 1;
-                printf("%-*s ", channel_buffer(ctx.active_channel)->nickwidth-11, ":emote>");
-                input = get_input();
-                if(strcmp(input, ""))
-                    send_action(sess, input);
-                else
-                    printf("<no message sent>\n");
-                free(input);
+                send_action(sess);
                 input_wait = 0;
                 print_new_messages();
                 break;
@@ -190,11 +228,11 @@ int main(int argc, char **argv)
             {
                 printf("\nirCOMMODE (c)2023 - Version .27\n\n");
 
-                printf("  \e[33;1mc\e[0m - clear               *\e[33;1md\e[0m - dump out of com      \e[33;1me\e[0m - emote\n");
+                printf("  \e[33;1mc\e[0m - clear                \e[33;1md\e[0m - dump out of com      \e[33;1me\e[0m - emote\n");
                 printf("  \e[33;1mg\e[0m - goto a room          \e[33;1mh\e[0m - command help        *\e[33;1mi\e[0m - ignore a user\n");
                 printf(" *\e[33;1mk\e[0m - kick a user          \e[33;1ml\e[0m - list open rooms     *\e[33;1mm\e[0m - mute user toggle\n");
                 printf("  \e[33;1mp\e[0m - peek into room       \e[33;1mq\e[0m - quit commode         \e[33;1mr\e[0m - room history\n");
-                printf("  \e[33;1mR\e[0m - extended history    *\e[33;1ms\e[0m - send private         \e[33;1mw\e[0m - who is in the room\n");
+                printf("  \e[33;1mR\e[0m - extended history     \e[33;1ms\e[0m - send private         \e[33;1mw\e[0m - who is in the room\n");
                 printf("  \e[33;1m<\e[0m - surf rooms backward \e[33;1m >\e[0m - surf rooms forward\n\n");
 
                 printf("To begin TALK MODE, press [SPACE]\n\n");
@@ -210,12 +248,8 @@ int main(int argc, char **argv)
             }
             case 'p':
             {
-                char *input;
                 input_wait = 1;
-                printf("%-*s ", channel_buffer(ctx.active_channel)->nickwidth-11, ":peek>");
-                input = get_input();
-                peek_channel(input);
-                free(input);
+                peek_channel(sess);
                 input_wait = 0;
                 print_new_messages();
                 break;
@@ -249,6 +283,14 @@ int main(int argc, char **argv)
                 print_new_messages();
                 break;
             }
+            case 's':
+            {
+                input_wait = 1;
+                send_privmsg(sess);
+                input_wait = 0;
+                print_new_messages();
+                break;
+            }
             case 'w':
             {
                 printf("[you are in \'%s\']\n\n", ctx.active_channel);
@@ -260,7 +302,7 @@ int main(int argc, char **argv)
             case ' ':
             {
                 input_wait = 1;
-                send_message(sess, ctx.active_channel);
+                send_message(sess);
                 input_wait = 0;
                 print_new_messages();
                 break;

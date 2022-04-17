@@ -13,5 +13,3 @@ void event_connect();
 void event_privmsg();
 void event_channel();
 void event_action();
-void dcc_recv_callback();
-void dcc_file_recv_callback();
