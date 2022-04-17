@@ -7,6 +7,7 @@ ircom is a comand-line IRC client implemented without curses. The client is desi
 The control scheme is modeled after SDF's [commode](http://jwodder.freeshell.org/sdf/commands.html) script.
 
 # Features to implement:
+marked with a (*)
 
         irCOMMODE (c)2023 - Version .27
         
