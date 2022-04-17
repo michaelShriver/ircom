@@ -43,6 +43,8 @@ void event_join (irc_session_t * session, const char * event, const char * origi
     if(strcmp(nickbuf, ctx->nick) == 0)
         message_buffer->curr->isread = 1;
 
+    printf("[you are in \'%s\']\r\n\r\n", ctx->active_channel);
+
     print_new_messages();
 }
 
