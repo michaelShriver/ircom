@@ -115,7 +115,7 @@ void event_topic(irc_session_t *session, const char *event, const char *origin, 
 
     irc_ctx_t *ctx = (irc_ctx_t *)irc_get_ctx(session);
     irc_target_get_nick(origin, nickbuf, sizeof(nickbuf));
-    strlcpy(chanbuf, params[0], sizeof(chanbuf));
+    strncpy(chanbuf, params[0], sizeof(chanbuf));
     
     if(channel_isjoined(chanbuf))
     {
@@ -233,7 +233,7 @@ void event_numeric (irc_session_t * session, unsigned int event, const char * or
             char chanbuf[128];
 
             irc_ctx_t *ctx = (irc_ctx_t *)irc_get_ctx(session);
-            strlcpy(chanbuf, params[1], sizeof(chanbuf));
+            strncpy(chanbuf, params[1], sizeof(chanbuf));
     
             char topicmsg[1186];
             char timebuf[9];
@@ -260,7 +260,7 @@ void event_numeric (irc_session_t * session, unsigned int event, const char * or
                 int cols = (ttysize.ws_col / 20);
                 int nicksize = strlen(params[3]) + 1;
                 char nicks[nicksize];
-                strlcpy(nicks, params[3], nicksize);
+                strncpy(nicks, params[3], nicksize);
                 char *nickbuf = strtok(nicks, " ");
 
                 while(nickbuf != NULL)
