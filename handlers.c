@@ -230,6 +230,11 @@ void event_numeric (irc_session_t * session, unsigned int event, const char * or
 {
     switch(event)
     {
+        case 322:
+        {
+           printf("%13s %3s  %s\r\n", params[1], params[2], params[3]); 
+           break;
+        }
         case 332:
         {
             char chanbuf[128];
@@ -279,8 +284,6 @@ void event_numeric (irc_session_t * session, unsigned int event, const char * or
                     }
                     printf("\r\n");
                 }
-                printf("\r\n");
-
                 break;
             }
 
