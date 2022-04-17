@@ -34,6 +34,7 @@ void event_join (irc_session_t * session, const char * event, const char * origi
         buffer_read_ptr = message_buffer->curr; // Move read pointer to first channel buffer upon join
         strcpy(ctx->active_channel, chanbuf);
         irc_cmd_user_mode (session, "+i");
+        printf("[you are in \'%s\']\r\n\r\n", ctx->active_channel);
     }
 
     char joinmsg[277];
@@ -43,7 +44,6 @@ void event_join (irc_session_t * session, const char * event, const char * origi
     if(strcmp(nickbuf, ctx->nick) == 0)
         message_buffer->curr->isread = 1;
 
-    printf("[you are in \'%s\']\r\n\r\n", ctx->active_channel);
 
     print_new_messages();
 }
@@ -89,7 +89,6 @@ void event_part(irc_session_t * session, const char * event, const char * origin
         {
             buffer_read_ptr = doomed_buffer->prevbuf->curr;
             strcpy(ctx->active_channel, doomed_buffer->prevbuf->channel);
-            printf("[you are in \'%s\']\r\n\r\n", ctx->active_channel);
         }
         else
             printf("[you have been removed from \'%s\']\r\n", chanbuf);
@@ -256,6 +255,7 @@ void event_numeric (irc_session_t * session, unsigned int event, const char * or
             add_to_buffer(message_buffer, topicmsg);
 
             print_new_messages();
+            printf("\r\n");
             break;
         }
         case 353:
