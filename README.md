@@ -10,11 +10,11 @@ The control scheme is modeled after SDF's [commode](http://jwodder.freeshell.org
 
         irCOMMODE (c)2023 - Version .27
         
-          c - clear                d - dump out of com      e - emote
-          E - toggle echo          g - goto a room          h - command help         
-          i - ignore a user        k - kick a user          l - list open rooms
-          m - mute user toggle     p - peek into room       q - quit commode
-          r - room history         R - extended history     s - send private         
+          c - clear               *d - dump out of com      e - emote
+         *E - toggle echo          g - goto a room          h - command help         
+         *i - ignore a user       *k - kick a user         *l - list open rooms
+         *m - mute user toggle     p - peek into room       q - quit commode
+          r - room history         R - extended history    *s - send private         
           w - who is in the room   < - surf rooms backward  > - surf rooms forward
         
         To begin TALK MODE, press [SPACE]
