@@ -118,7 +118,6 @@ int main(int argc, char **argv)
                 }
                 else
                 {       
-                    printf("[you are in \'%s\']\n\n", ctx.active_channel);
                     irc_cmd_names(sess, ctx.active_channel);
                 }
                 break;
@@ -135,7 +134,6 @@ int main(int argc, char **argv)
                 {
                     strcpy(ctx.active_channel, channel_buffer(ctx.active_channel)->nextbuf->channel);
                     buffer_read_ptr = channel_buffer(ctx.active_channel)->curr;
-                    printf("[you are in \'%s\']\n\n", ctx.active_channel);
                     irc_cmd_names(sess, ctx.active_channel);
                 }
                 break;
@@ -211,7 +209,6 @@ int main(int argc, char **argv)
                 {
                     strcpy(ctx.active_channel, input);
                     buffer_read_ptr = channel_buffer(ctx.active_channel)->curr;
-                    printf("[you are in \'%s\']\n\n", ctx.active_channel);
                     irc_cmd_names(sess, ctx.active_channel);
                 }
                 else
@@ -228,7 +225,7 @@ int main(int argc, char **argv)
             {
                 printf("\nirCOMMODE (c)2023 - Version .27\n\n");
 
-                printf("  \e[33;1mc\e[0m - clear                \e[33;1md\e[0m - dump out of com      \e[33;1me\e[0m - emote\n");
+                printf("  \e[33;1mc\e[0m - clear                \e[33;1md\e[0m - dump out of ircom    \e[33;1me\e[0m - emote\n");
                 printf("  \e[33;1mg\e[0m - goto a room          \e[33;1mh\e[0m - command help        *\e[33;1mi\e[0m - ignore a user\n");
                 printf(" *\e[33;1mk\e[0m - kick a user          \e[33;1ml\e[0m - list open rooms     *\e[33;1mm\e[0m - mute user toggle\n");
                 printf("  \e[33;1mp\e[0m - peek into room       \e[33;1mq\e[0m - quit commode         \e[33;1mr\e[0m - room history\n");
@@ -256,7 +253,10 @@ int main(int argc, char **argv)
             }
             case 'P':
             {
-                irc_cmd_part(sess, ctx.active_channel);
+                if(strcmp(server_buffer->channel, ctx.active_channel) == 0)
+                    printf("<no channel is active>\r\n");
+                else
+                    irc_cmd_part(sess, ctx.active_channel);
                 break;
             }
             case 'q':

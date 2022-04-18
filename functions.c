@@ -11,6 +11,8 @@ bufptr *init_buffer(char *channel)
     channel_buffer->topic = NULL;
     channel_buffer->topicsetby = NULL;
     channel_buffer->nickwidth = 0;
+    channel_buffer->nickcount = 0;
+    channel_buffer->nicklist = NULL;
     channel_buffer->curr->prev = NULL;
     channel_buffer->curr->next = NULL;
     channel_buffer->curr->message = NULL;
@@ -21,6 +23,16 @@ bufptr *init_buffer(char *channel)
         server_buffer->prevbuf = channel_buffer;
 
     return channel_buffer;
+}
+
+nickname *init_nickentry()
+{
+    nickname *nickentry = malloc(sizeof(nickname));
+    nickentry->mode = '\0';
+    nickentry->handle = NULL;
+    nickentry->next = NULL;
+
+    return nickentry;
 }
 
 /* Return a pointer for a specified channel's buffer, init a new buffer if needed */
@@ -59,6 +71,88 @@ int channel_isjoined(char *channel)
     }
 
     return 0;
+}
+
+int nick_is_member(char *channel, char *nick)
+{
+    nickname *search_ptr = channel_buffer(channel)->nicklist;
+    char modeset[] = "~&@%+";
+
+    if(search_ptr == NULL)
+        return 0;
+
+    for(int i=0; i < strlen(modeset); i++)
+    {
+        if(nick[0] == modeset[i])
+        {
+            nick++;
+            break;
+       }
+    }
+
+    if(strcmp(nick, search_ptr->handle) == 0)
+        return 1;
+
+    while(search_ptr->next != NULL)
+    {
+        if(strcmp(nick, search_ptr->next->handle) == 0)
+            return 1;
+
+        search_ptr = search_ptr->next;
+    }
+    return 0;
+}
+
+void add_member(char *channel, char *nick)
+{
+    bufptr *chanbuf = channel_buffer(channel);
+    nickname *search_ptr = chanbuf->nicklist;
+    char mode = '\0';
+    char modeset[] = "~&@%+";
+
+    for(int i=0; i < strlen(modeset); i++)
+    {
+        if(nick[0] == modeset[i])
+        {
+            mode = nick[0];
+            nick++;
+            break;
+       }
+    }
+
+    if(search_ptr == NULL)
+    {
+        chanbuf->nicklist = init_nickentry();
+        chanbuf->nicklist->mode = mode;
+        chanbuf->nicklist->handle = malloc((sizeof(char)*strlen(nick)) + 1);
+        strncpy(chanbuf->nicklist->handle, nick, strlen(nick) + 1);
+        chanbuf->nickcount++;
+
+        return;
+    }
+
+    if(strcmp(nick, search_ptr->handle) == 0)
+        return;
+
+    while(search_ptr->next != NULL)
+    {
+        if(strcmp(nick, search_ptr->next->handle) == 0)
+            return;
+
+        search_ptr = search_ptr->next;
+    }
+
+    search_ptr->next = init_nickentry();
+    search_ptr->next->mode = mode;
+    search_ptr->next->handle = malloc((sizeof(char)*strlen(nick)) + 1);
+    strncpy(search_ptr->next->handle, nick, strlen(nick) + 1);
+    chanbuf->nickcount++;
+
+    return;
+}
+
+void delete_member(char *channel, char *nick)
+{
 }
 
 /* Add a message to the end of the message buffer, return a pointer to new entry */
@@ -256,6 +350,33 @@ void rewind_buffer(bufline *buffer_read_ptr, int lines)
     printf("--Review-Complete---------------------------------------------------------------\r\n");
 }
 
+void print_new_messages()
+{
+    if (input_wait == 0)
+    {
+        /* Walk the message buffer, and write messages to the terminal */
+        while (buffer_read_ptr->next != NULL)
+        {
+            if (buffer_read_ptr->isread == 0 && buffer_read_ptr->message != NULL)
+            {
+                buffer_read_ptr->isread = 1;
+                printf("%s\r\n", buffer_read_ptr->message);
+            }
+    
+            if (buffer_read_ptr->next != NULL)
+            {
+                buffer_read_ptr = buffer_read_ptr->next;
+            }
+        }
+
+        if (buffer_read_ptr->isread == 0 && buffer_read_ptr->message != NULL)
+        {
+            buffer_read_ptr->isread = 1;
+            printf("%s\r\n", buffer_read_ptr->message);
+        }
+    }
+}
+
 void peek_channel(irc_session_t *s)
 {
     irc_ctx_t *ctx = (irc_ctx_t*)irc_get_ctx(s);
@@ -279,6 +400,17 @@ void peek_channel(irc_session_t *s)
 
     printf("<no history available for \'%s\'>\r\n", channel);
     free(channel);
+
+    return;
+}
+
+void clear_nicklist(nickname *nick)
+{
+    if(nick->next != NULL)
+        clear_nicklist(nick->next);
+
+    free(nick->handle);
+    free(nick);
 
     return;
 }
@@ -343,31 +475,3 @@ void clear_all()
     return;
 }
 
-void print_new_messages()
-{
-
-    if (input_wait == 0)
-    {
-        /* Walk the message buffer, and write messages to the terminal */
-        while (buffer_read_ptr->next != NULL)
-        {
-            if (buffer_read_ptr->isread == 0 && buffer_read_ptr->message != NULL)
-            {
-                buffer_read_ptr->isread = 1;
-                printf("%s\r\n", buffer_read_ptr->message);
-            }
-    
-            if (buffer_read_ptr->next != NULL)
-            {
-                buffer_read_ptr = buffer_read_ptr->next;
-            }
-        }
-
-        if (buffer_read_ptr->isread == 0 && buffer_read_ptr->message != NULL)
-        {
-            buffer_read_ptr->isread = 1;
-            printf("%s\r\n", buffer_read_ptr->message);
-        }
-    }
-
-}

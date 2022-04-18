@@ -31,10 +31,12 @@ void event_join (irc_session_t * session, const char * event, const char * origi
 
     if(strcmp(nickbuf, ctx->nick) == 0)
     {
-        buffer_read_ptr = message_buffer->curr; // Move read pointer to first channel buffer upon join
+        buffer_read_ptr = message_buffer->curr;
         strcpy(ctx->active_channel, chanbuf);
         irc_cmd_user_mode (session, "+i");
-        printf("[you are in \'%s\']\r\n\r\n", ctx->active_channel);
+        //while(input_wait == 1)
+            //sleep((double).1);
+        //printf("[you are in \'%s\']\r\n\r\n", ctx->active_channel);
     }
 
     char joinmsg[277];
@@ -43,7 +45,6 @@ void event_join (irc_session_t * session, const char * event, const char * origi
     message_buffer->curr->isread = strcmp(ctx->active_channel, chanbuf) == 0 ? 0 : 1;
     if(strcmp(nickbuf, ctx->nick) == 0)
         message_buffer->curr->isread = 1;
-
 
     print_new_messages();
 }
@@ -87,10 +88,21 @@ void event_part(irc_session_t * session, const char * event, const char * origin
 
         if (strcmp(ctx->active_channel, chanbuf) == 0)
         {
-            buffer_read_ptr = doomed_buffer->prevbuf->curr;
-            strcpy(ctx->active_channel, doomed_buffer->prevbuf->channel);
+            if(doomed_buffer->nextbuf != NULL)
+            {
+                buffer_read_ptr=doomed_buffer->nextbuf->curr;
+                strcpy(ctx->active_channel, doomed_buffer->nextbuf->channel);
+            }
+            else
+            {
+                buffer_read_ptr = doomed_buffer->prevbuf->curr;
+                strcpy(ctx->active_channel, doomed_buffer->prevbuf->channel);
+            }
+            printf("[you are in \'%s\']\r\n\r\n", ctx->active_channel);
         }
         else
+            while(input_wait == 1)
+                sleep((double).1);
             printf("[you have been removed from \'%s\']\r\n", chanbuf);
 
         clear_buffer(doomed_buffer);
@@ -222,6 +234,8 @@ void event_privmsg (irc_session_t * session, const char * event, const char * or
     char *message = irc_color_strip_from_mirc(params[1]);
 
     irc_target_get_nick (origin, nickbuf, sizeof(nickbuf));
+    while(input_wait == 1)
+        sleep((double).1);
     printf ("\e[31;1m*%s*\e[0m %s\r\n", origin ? nickbuf : "someone", message);
     free(message);
 }
@@ -256,39 +270,62 @@ void event_numeric (irc_session_t * session, unsigned int event, const char * or
             add_to_buffer(message_buffer, topicmsg);
 
             print_new_messages();
-            printf("\r\n");
             break;
         }
         case 353:
         {
-            //printf("%d %s %u %s %s\r\n", event, origin, count, params[2], params[3]);
-            irc_ctx_t *ctx = (irc_ctx_t *)irc_get_ctx(session);
-            if(strcmp(ctx->active_channel, params[2]) == 0)
-            {
-                int cols = (ttysize.ws_col / 20);
-                int nicksize = strlen(params[3]) + 1;
-                char nicks[nicksize];
-                strncpy(nicks, params[3], nicksize);
-                char *nickbuf = strtok(nicks, " ");
+            char nicks[strlen(params[3]+1)];
+            strcpy(nicks, params[3]);
 
-                while(nickbuf != NULL)
+            char *nickbuf = strtok(nicks, " ");
+            while(nickbuf != NULL)
+            {
+                add_member(params[2], nickbuf);
+                nickbuf = strtok(NULL, " "); 
+            }
+
+            break;
+        }
+        case 366:
+        {
+            irc_ctx_t *ctx = (irc_ctx_t *)irc_get_ctx(session);
+
+            if(strcmp(params[1], ctx->active_channel) == 0)
+            {
+                bufptr *active_channel = channel_buffer(ctx->active_channel);
+                nickname *search_ptr = active_channel->nicklist;
+                char nickbuf[128];
+
+                while(input_wait == 1)
+                    sleep((double).1);
+                printf("\r\n[you are in \'%s\' among %d]\r\n\r\n", ctx->active_channel, active_channel->nickcount);
+
+                int cols = (ttysize.ws_col / 20);
+                while(search_ptr != NULL)
                 {
                     for(int c=0; c < cols; c++)
                     {
-                        if(nickbuf != NULL)
+                        if(search_ptr != NULL)
                         {
+                            if(search_ptr->mode == '\0')
+                            {
+                                strncpy(nickbuf, search_ptr->handle, sizeof(nickbuf));
+                            }
+                            else
+                            {
+                                snprintf(nickbuf, sizeof(nickbuf), "%c%s", search_ptr->mode, search_ptr->handle);
+                            }
                             printf("%-20s", nickbuf);
-                            nickbuf = strtok(NULL, " ");
+                            search_ptr = search_ptr->next;
                         }
                         else
                             break;
                     }
                     printf("\r\n");
                 }
-                break;
             }
-
-            // break;
+            printf("\r\n");
+            break;
         }
         case 372:
         case 375:
@@ -302,10 +339,10 @@ void event_numeric (irc_session_t * session, unsigned int event, const char * or
             break;
         }
         //ignore events
-        case 366:
-        {
-            break;
-        }
+        //case 366:
+        //{
+        //    break;
+        //}
         default:
         {
             char buf[24];

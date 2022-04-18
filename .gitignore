@@ -5,4 +5,4 @@ ircom
 *.swp
 *.xcodeproj
 *.tmp
-
+.vscode
