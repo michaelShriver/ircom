@@ -112,7 +112,7 @@ int add_member(char *channel, char *nick)
 
     for(int i=0; i < strlen(modeset); i++)
     {
-        if(nick[0] == modeset[i])
+        if(nick[0] == modeset[i] && strlen(nick) > 1)
         {
             mode = nick[0];
             nick++;
@@ -125,7 +125,7 @@ int add_member(char *channel, char *nick)
         chanbuf->nicklist = init_nickentry();
         chanbuf->nicklist->mode = mode;
         chanbuf->nicklist->handle = malloc((sizeof(char)*strlen(nick)) + 1);
-        strncpy(chanbuf->nicklist->handle, nick, strlen(nick) + 1);
+        strncpy(chanbuf->nicklist->handle, nick, strlen(nick));
         chanbuf->nickcount++;
 
         return 1;
@@ -151,7 +151,7 @@ int add_member(char *channel, char *nick)
     search_ptr->next = init_nickentry();
     search_ptr->next->mode = mode;
     search_ptr->next->handle = malloc((sizeof(char)*strlen(nick)) + 1);
-    strncpy(search_ptr->next->handle, nick, strlen(nick) + 1);
+    strncpy(search_ptr->next->handle, nick, strlen(nick));
     chanbuf->nickcount++;
 
     return 1;
