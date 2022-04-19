@@ -108,6 +108,7 @@ void event_part(irc_session_t * session, const char * event, const char * origin
                 buffer_read_ptr = doomed_buffer->prevbuf->curr;
                 strcpy(ctx->active_channel, doomed_buffer->prevbuf->channel);
             }
+
             irc_cmd_names(session, ctx->active_channel);
         }
         else
@@ -126,9 +127,8 @@ void event_part(irc_session_t * session, const char * event, const char * origin
         snprintf(partmsg, 277, "\e[33;1m[%s] %s has left %s.\e[0m", timebuf, nickbuf, chanbuf);
         message_buffer->curr = add_to_buffer(message_buffer, partmsg);
         message_buffer->curr->isread = strcmp(ctx->active_channel, chanbuf) == 0 ? 0 : 1;
+        print_new_messages();
     }
-
-    print_new_messages();
 
     return;
 }
@@ -351,10 +351,10 @@ void event_numeric (irc_session_t * session, unsigned int event, const char * or
             break;
         }
         //ignore events
-        //case 366:
-        //{
-        //    break;
-        //}
+        case 1000:
+        {
+            break;
+        }
         default:
         {
             char buf[24];
