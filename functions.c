@@ -333,7 +333,7 @@ void addlog (const char * fmt, ...)
 
 void exit_cleanup()
 {
-    clear_all();
+    clear_all(server_buffer);
     tcsetattr(0, TCSANOW, &termstate);
 }
 
@@ -449,7 +449,9 @@ void peek_channel(irc_session_t *s)
 
 void clear_nicklist(nickname *nick)
 {
-    if(nick->next != NULL)
+    if(nick == NULL)
+        return;
+    else
         clear_nicklist(nick->next);
 
     free(nick->handle);
@@ -458,22 +460,19 @@ void clear_nicklist(nickname *nick)
     return;
 }
 
+void clear_msglist(bufline *message)
+{
+    if(message == NULL)
+        return;
+    else
+        clear_msglist(message->next);
+
+    free(message->message);
+    free(message);
+}
+
 void clear_buffer(bufptr *buffer)
 {
-    bufline *buffer_entry = buffer->curr;
-
-    /* Start at the end */
-    while(buffer_entry->next != NULL)
-        buffer_entry = buffer_entry->next;
-
-    while(buffer_entry->prev != NULL)
-    {
-        buffer_entry = buffer_entry->prev;
-        free(buffer_entry->next->message);
-        free(buffer_entry->next);
-        buffer_entry->next = NULL;
-    }
-
     if (buffer != server_buffer)
     {
         buffer->prevbuf->nextbuf = buffer->nextbuf;
@@ -482,38 +481,26 @@ void clear_buffer(bufptr *buffer)
     }
     else if (buffer->nextbuf == NULL)
         server_buffer->prevbuf = buffer->prevbuf;
-    free(buffer->head->message);
-    free(buffer->head);
+    
+    clear_msglist(buffer->head);
+    clear_nicklist(buffer->nicklist);
     free(buffer->channel);
     free(buffer->topic);
     free(buffer->topicsetby);
     free(buffer);
 }
 
-void clear_all()
+void clear_all(bufptr *buffer)
 {
-    bufptr *search_ptr = server_buffer;
+    if(buffer == NULL)
+        return;
+    else
+        clear_all(buffer->nextbuf);
 
-    while (search_ptr->nextbuf != NULL)
-    {
-        search_ptr = search_ptr->nextbuf;
-        clear_buffer(search_ptr->prevbuf);
-    }
-
-    while(search_ptr->curr->prev != NULL)
-    {
-        search_ptr->curr = search_ptr->curr->prev;
-        free(search_ptr->curr->next->message);
-        free(search_ptr->curr->next);
-        search_ptr->curr->next = NULL;
-    }
-
-    free(search_ptr->head->message);
-    free(search_ptr->head);
-    free(search_ptr->channel);
-    free(search_ptr->topic);
-    free(search_ptr->topicsetby);
-    free(search_ptr);
+    free(buffer->channel);
+    free(buffer->topic);
+    free(buffer->topicsetby);
+    free(buffer);
 
     return;
 }
