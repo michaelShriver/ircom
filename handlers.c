@@ -61,6 +61,16 @@ void event_quit(irc_session_t * session, const char * event, const char * origin
     irc_ctx_t * ctx = (irc_ctx_t *) irc_get_ctx (session);
 
     char partmsg[1200];
+    bufptr *search_ptr = server_buffer;
+    while(search_ptr->nextbuf != NULL)
+    {
+        if(delete_member(search_ptr->nextbuf->channel, nickbuf))
+        {
+            snprintf(partmsg, 1200, "\e[33;1m[%s] %s has left %s. (Quit: %s)\e[0m", timebuf, nickbuf, search_ptr->nextbuf->channel, params[0]);
+            search_ptr->nextbuf->curr = add_to_buffer(search_ptr->nextbuf, partmsg);
+        }
+        search_ptr = search_ptr->nextbuf;
+    }
     snprintf(partmsg, 1200, "\e[33;1m[%s] %s has quit. (%s)\e[0m", timebuf, nickbuf, params[0]);
     server_buffer->curr = add_to_buffer(server_buffer, partmsg);
 
@@ -111,6 +121,7 @@ void event_part(irc_session_t * session, const char * event, const char * origin
     {
         char partmsg[277];
         bufptr *message_buffer = channel_buffer(chanbuf);
+        delete_member(chanbuf, nickbuf);
         snprintf(partmsg, 277, "\e[33;1m[%s] %s has left %s.\e[0m", timebuf, nickbuf, chanbuf);
         message_buffer->curr = add_to_buffer(message_buffer, partmsg);
         message_buffer->curr->isread = strcmp(ctx->active_channel, chanbuf) == 0 ? 0 : 1;

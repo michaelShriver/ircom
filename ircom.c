@@ -293,7 +293,6 @@ int main(int argc, char **argv)
             }
             case 'w':
             {
-                printf("[you are in \'%s\']\n\n", ctx.active_channel);
                 irc_cmd_names(sess, ctx.active_channel);
 
                 break;

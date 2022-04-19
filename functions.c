@@ -103,7 +103,7 @@ int nick_is_member(char *channel, char *nick)
     return 0;
 }
 
-void add_member(char *channel, char *nick)
+int add_member(char *channel, char *nick)
 {
     bufptr *chanbuf = channel_buffer(channel);
     nickname *search_ptr = chanbuf->nicklist;
@@ -128,16 +128,16 @@ void add_member(char *channel, char *nick)
         strncpy(chanbuf->nicklist->handle, nick, strlen(nick) + 1);
         chanbuf->nickcount++;
 
-        return;
+        return 1;
     }
 
     if(strcmp(nick, search_ptr->handle) == 0)
-        return;
+        return 0;
 
     while(search_ptr->next != NULL)
     {
         if(strcmp(nick, search_ptr->next->handle) == 0)
-            return;
+            return 0;
 
         search_ptr = search_ptr->next;
     }
@@ -148,11 +148,54 @@ void add_member(char *channel, char *nick)
     strncpy(search_ptr->next->handle, nick, strlen(nick) + 1);
     chanbuf->nickcount++;
 
-    return;
+    return 1;
 }
 
-void delete_member(char *channel, char *nick)
+int delete_member(char *channel, char *nick)
 {
+    bufptr *chanbuf = channel_buffer(channel);
+    nickname *search_ptr = chanbuf->nicklist;
+    char mode = '\0';
+    char modeset[] = "~&@%+";
+
+    for(int i=0; i < strlen(modeset); i++)
+    {
+        if(nick[0] == modeset[i])
+        {
+            mode = nick[0];
+            nick++;
+            break;
+       }
+    }
+
+    if(search_ptr == NULL)
+        return 0;
+
+    if(strcmp(nick, search_ptr->handle) == 0)
+    {
+        free(search_ptr->handle);
+        chanbuf->nicklist = search_ptr->next;
+        free(search_ptr);
+        chanbuf->nickcount--;
+
+        return 1;
+    }
+
+    while(search_ptr->next != NULL)
+    {
+        if(strcmp(nick, search_ptr->next->handle) == 0)
+        {
+            free(search_ptr->handle);
+            search_ptr->next = search_ptr->next->next;
+            free(search_ptr);
+            chanbuf->nickcount--;
+            return 1;
+        }
+
+        search_ptr = search_ptr->next;
+    }
+
+    return 0;
 }
 
 /* Add a message to the end of the message buffer, return a pointer to new entry */
