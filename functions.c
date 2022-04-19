@@ -179,10 +179,10 @@ int delete_member(char *channel, char *nick)
 
     if(strcmp(nick, search_ptr->handle) == 0)
     {
-        free(search_ptr->handle);
         chanbuf->nicklist = search_ptr->next;
-        free(search_ptr);
         chanbuf->nickcount--;
+        free(search_ptr->handle);
+        free(search_ptr);
 
         return 1;
     }
@@ -191,10 +191,11 @@ int delete_member(char *channel, char *nick)
     {
         if(strcmp(nick, search_ptr->next->handle) == 0)
         {
-            free(search_ptr->next->handle);
-            search_ptr->next = search_ptr->next->next;
-            free(search_ptr->next);
+            nickname *deadmember = search_ptr->next;
+            search_ptr->next = deadmember->next;
             chanbuf->nickcount--;
+            free(deadmember->handle);
+            free(deadmember);
             return 1;
         }
 
