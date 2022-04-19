@@ -108,12 +108,13 @@ void event_part(irc_session_t * session, const char * event, const char * origin
                 buffer_read_ptr = doomed_buffer->prevbuf->curr;
                 strcpy(ctx->active_channel, doomed_buffer->prevbuf->channel);
             }
-            printf("[you are in \'%s\']\r\n\r\n", ctx->active_channel);
+            irc_cmd_names(session, ctx->active_channel);
         }
         else
             while(input_wait == 1)
                 sleep((double).1);
-            printf("[you have been removed from \'%s\']\r\n", chanbuf);
+            if(strcmp(ctx->active_channel, chanbuf))
+                printf("[you have been removed from \'%s\']\r\n", chanbuf);
 
         clear_buffer(doomed_buffer);
     }
