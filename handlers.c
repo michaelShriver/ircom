@@ -70,8 +70,8 @@ void event_quit(irc_session_t * session, const char * event, const char * origin
         }
         search_ptr = search_ptr->nextbuf;
     }
-    snprintf(partmsg, 1200, "\e[33;1m[%s] %s has quit. (%s)\e[0m", timebuf, nickbuf, params[0]);
-    server_buffer->curr = add_to_buffer(server_buffer, partmsg);
+    //snprintf(partmsg, 1200, "\e[33;1m[%s] %s has quit. (%s)\e[0m", timebuf, nickbuf, params[0]);
+    //server_buffer->curr = add_to_buffer(server_buffer, partmsg);
 
     print_new_messages();
 

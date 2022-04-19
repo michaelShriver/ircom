@@ -132,12 +132,18 @@ int add_member(char *channel, char *nick)
     }
 
     if(strcmp(nick, search_ptr->handle) == 0)
+    {
+        search_ptr->mode = mode;
         return 0;
+    }
 
     while(search_ptr->next != NULL)
     {
         if(strcmp(nick, search_ptr->next->handle) == 0)
+        {
+            search_ptr->next->mode = mode;
             return 0;
+        }
 
         search_ptr = search_ptr->next;
     }
