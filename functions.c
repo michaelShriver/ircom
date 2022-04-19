@@ -497,6 +497,8 @@ void clear_all(bufptr *buffer)
     else
         clear_all(buffer->nextbuf);
 
+    clear_msglist(buffer->head);
+    clear_nicklist(buffer->nicklist);
     free(buffer->channel);
     free(buffer->topic);
     free(buffer->topicsetby);
