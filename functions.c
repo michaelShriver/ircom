@@ -185,9 +185,9 @@ int delete_member(char *channel, char *nick)
     {
         if(strcmp(nick, search_ptr->next->handle) == 0)
         {
-            free(search_ptr->handle);
+            free(search_ptr->next->handle);
             search_ptr->next = search_ptr->next->next;
-            free(search_ptr);
+            free(search_ptr->next);
             chanbuf->nickcount--;
             return 1;
         }
