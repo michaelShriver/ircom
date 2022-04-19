@@ -34,10 +34,9 @@ void event_join (irc_session_t * session, const char * event, const char * origi
         buffer_read_ptr = message_buffer->curr;
         strcpy(ctx->active_channel, chanbuf);
         irc_cmd_user_mode (session, "+i");
-        //while(input_wait == 1)
-            //sleep((double).1);
-        //printf("[you are in \'%s\']\r\n\r\n", ctx->active_channel);
     }
+    else
+        add_member(chanbuf, nickbuf);
 
     char joinmsg[277];
     snprintf(joinmsg, 277, "\e[33;1m[%s] %s has joined %s.\e[0m", timebuf, nickbuf, chanbuf);
