@@ -241,7 +241,6 @@ bufline *add_to_buffer(bufptr *msgbuffer, char *cmsg)
 }
 
 /* Send a message to the channel, and add it to my buffer */
-// void send_message(irc_session_t *s, char *channel, char *message)
 void send_message(irc_session_t *s)
 {
     irc_ctx_t * ctx = (irc_ctx_t *) irc_get_ctx (s);
@@ -516,4 +515,3 @@ void clear_all(bufptr *buffer)
 
     return;
 }
-

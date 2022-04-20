@@ -71,8 +71,7 @@ int main(int argc, char **argv)
     /* Initialize my user-defined IRC context, with two buffers */
     irc_ctx_t ctx;
     ctx.nick = argv[2];
-    //ctx.initial_chan = argv[3];
-    strcpy(ctx.active_channel, argv[3]);
+    ctx.active_channel = argv[3];
 
     irc_set_ctx(sess, &ctx);
 
@@ -110,7 +109,7 @@ int main(int argc, char **argv)
         {
             case '<':
             {
-                strcpy(ctx.active_channel, channel_buffer(ctx.active_channel)->prevbuf->channel);
+                ctx.active_channel = channel_buffer(ctx.active_channel)->prevbuf->channel;
                 buffer_read_ptr = channel_buffer(ctx.active_channel)->curr;
                 if(channel_buffer(ctx.active_channel) == server_buffer)
                 {
@@ -126,13 +125,13 @@ int main(int argc, char **argv)
             {
                 if (channel_buffer(ctx.active_channel)->nextbuf == NULL)
                 {
-                    strcpy(ctx.active_channel, server_buffer->channel);
+                    ctx.active_channel = server_buffer->channel;
                     buffer_read_ptr = server_buffer->curr;
                     printf("[server messages]\n\n");
                 }
                 else
                 {
-                    strcpy(ctx.active_channel, channel_buffer(ctx.active_channel)->nextbuf->channel);
+                    ctx.active_channel = channel_buffer(ctx.active_channel)->nextbuf->channel;
                     buffer_read_ptr = channel_buffer(ctx.active_channel)->curr;
                     irc_cmd_names(sess, ctx.active_channel);
                 }
@@ -146,7 +145,6 @@ int main(int argc, char **argv)
             case 'd':
             {
                 input_wait = 1;
-                //take_dump(sess);
                 printf("Do you really want to take a dump of %s? (y/n) ", ctx.active_channel);
                 tcsetattr(0, TCSANOW, &termstate_raw);
                 char ans = getchar();
@@ -207,7 +205,7 @@ int main(int argc, char **argv)
                 input = get_input();
                 if (channel_isjoined(input))
                 {
-                    strcpy(ctx.active_channel, input);
+                    ctx.active_channel = channel_buffer(input)->channel;
                     buffer_read_ptr = channel_buffer(ctx.active_channel)->curr;
                     irc_cmd_names(sess, ctx.active_channel);
                 }

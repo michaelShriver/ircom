@@ -18,21 +18,19 @@ void *irc_event_loop(void * sess)
 void event_join (irc_session_t * session, const char * event, const char * origin, const char ** params, unsigned int count)
 {
     char nickbuf[128];
-    //char chanbuf[128];
     char timebuf[9];
     time_t now = time(&now);
     struct tm *utc = gmtime(&now);
 
     strftime(timebuf, 9, "%H:%M:%S", utc);
     irc_target_get_nick (origin, nickbuf, sizeof(nickbuf));
-    //strcpy(chanbuf, params[0]);
     irc_ctx_t * ctx = (irc_ctx_t *) irc_get_ctx (session);
     bufptr *message_buffer = channel_buffer(params[0]);
 
     if(strcmp(nickbuf, ctx->nick) == 0)
     {
         buffer_read_ptr = message_buffer->curr;
-        strncpy(ctx->active_channel, params[0], 127); //TODO: Dynamically allocate
+        ctx->active_channel = message_buffer->channel;
         irc_cmd_user_mode (session, "+i");
     }
     else
@@ -99,12 +97,12 @@ void event_part(irc_session_t * session, const char * event, const char * origin
             if(doomed_buffer->nextbuf != NULL)
             {
                 buffer_read_ptr=doomed_buffer->nextbuf->curr;
-                strncpy(ctx->active_channel, doomed_buffer->nextbuf->channel, 127);
+                ctx->active_channel = doomed_buffer->nextbuf->channel;
             }
             else
             {
                 buffer_read_ptr = doomed_buffer->prevbuf->curr;
-                strncpy(ctx->active_channel, doomed_buffer->prevbuf->channel, 127);
+                ctx->active_channel = doomed_buffer->prevbuf->channel;
             }
 
             irc_cmd_names(session, ctx->active_channel);
@@ -133,13 +131,10 @@ void event_part(irc_session_t * session, const char * event, const char * origin
 
 void event_topic(irc_session_t *session, const char *event, const char *origin, const char **params, unsigned int count)
 {
-    //size_t chanlen = (sizeof(*params[0]) * (strlen(params[0]) + 1));
-    //char *chanbuf = malloc(chanlen); 
     char nickbuf[128];
 
     irc_ctx_t *ctx = (irc_ctx_t *)irc_get_ctx(session);
     irc_target_get_nick(origin, nickbuf, sizeof(nickbuf));
-    //memcpy(chanbuf, params[0], chanlen);
     
     if(channel_isjoined(params[0]))
     {
@@ -177,7 +172,6 @@ void event_topic(irc_session_t *session, const char *event, const char *origin, 
 
         print_new_messages();
     }
-    //free(chanbuf);
 
     return;
 }
@@ -196,8 +190,6 @@ void event_channel (irc_session_t * session, const char * event, const char * or
     irc_ctx_t * ctx = (irc_ctx_t *) irc_get_ctx (session);
     char nickbuf[128];
     char nick[128];
-    //char chanbuf[128];
-    //char msgbuf[1024];
     char messageline[2048];
 
     if ( count != 2 )
@@ -206,8 +198,6 @@ void event_channel (irc_session_t * session, const char * event, const char * or
     if ( !origin )
         return;
 
-    //strcpy(chanbuf, params[0]);
-    //strcpy(msgbuf, params[1]);
     char *msgbuf = irc_color_strip_from_mirc(params[1]);
     irc_target_get_nick(origin, nickbuf, sizeof(nickbuf));
     bufptr *message_buffer = channel_buffer(params[0]);
@@ -226,10 +216,8 @@ void event_action(irc_session_t * session, const char * event, const char * orig
 {
     char nickbuf[128];
     char actionbuf[1024];
-    //char chanbuf[128];
     char *action = irc_color_strip_from_mirc(params[1]);
 
-    //strcpy(chanbuf, params[0]);
     bufptr *message_buffer = channel_buffer(params[0]);
 
     irc_target_get_nick (origin, nickbuf, sizeof(nickbuf));
@@ -264,10 +252,7 @@ void event_numeric (irc_session_t * session, unsigned int event, const char * or
         }
         case 332:
         {
-            //char chanbuf[128];
-
             irc_ctx_t *ctx = (irc_ctx_t *)irc_get_ctx(session);
-            //strncpy(chanbuf, params[1], sizeof(chanbuf));
     
             char topicmsg[1186];
             char timebuf[9];
@@ -289,7 +274,6 @@ void event_numeric (irc_session_t * session, unsigned int event, const char * or
         {
             size_t nicklen = (sizeof(*params[3]) * (strlen(params[3]) + 1));
             char *nicks = malloc(nicklen);
-            //char nicks[strlen(params[3]+1)];
             memcpy(nicks, params[3], nicklen);
 
             char *nickbuf = strtok(nicks, " ");
@@ -310,7 +294,6 @@ void event_numeric (irc_session_t * session, unsigned int event, const char * or
             {
                 bufptr *active_channel = channel_buffer(ctx->active_channel);
                 nickname *search_ptr = active_channel->nicklist;
-                //char nickbuf[128];
 
                 while(input_wait == 1)
                     sleep((double).1);
