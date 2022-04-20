@@ -243,10 +243,15 @@ bufline *add_to_buffer(bufptr *msgbuffer, char *cmsg)
 /* Send a message to the channel, and add it to my buffer */
 void send_message(irc_session_t *s)
 {
-    irc_ctx_t * ctx = (irc_ctx_t *) irc_get_ctx (s);
+    irc_ctx_t * ctx = irc_get_ctx(s);
     char *input;
     char nickbuf[128];
     bufptr *message_buffer = channel_buffer(ctx->active_channel);
+    if(message_buffer == server_buffer)
+    {
+        printf("<you can't send messages to the server buffer>\n");       
+        return;
+    }
     snprintf(nickbuf, 128, "\e[36;1m[%s]\e[0m", ctx->nick);
     message_buffer->nickwidth = strlen(nickbuf) > message_buffer->nickwidth ? strlen(nickbuf) : message_buffer->nickwidth;
 
@@ -275,7 +280,7 @@ void send_message(irc_session_t *s)
 void send_action(irc_session_t *s)
 {
     char *action;
-    irc_ctx_t *ctx = (irc_ctx_t*)irc_get_ctx(s);
+    irc_ctx_t *ctx = irc_get_ctx(s);
     bufptr *message_buffer = channel_buffer(ctx->active_channel);
 
     printf("%-*s ", message_buffer->nickwidth-11, ":emote>");
@@ -299,7 +304,7 @@ void send_action(irc_session_t *s)
 
 void send_privmsg(irc_session_t *s)
 {
-    irc_ctx_t *ctx = (irc_ctx_t*)irc_get_ctx(s);
+    irc_ctx_t *ctx = irc_get_ctx(s);
     char *message;
     char *recipient;
     bufptr *active_channel = channel_buffer(ctx->active_channel);
@@ -319,39 +324,35 @@ void send_privmsg(irc_session_t *s)
     return;
 }
 
-/* Log undefined events to a text file and the server buffer */
-void addlog (const char * fmt, ...)
-{
-    FILE * fp;
-    char buf[1024];
-    va_list va_alist;
-
-    va_start (va_alist, fmt);
-    vsnprintf (buf, sizeof(buf), fmt, va_alist);
-    va_end (va_alist);
-
-    server_buffer->curr = add_to_buffer(server_buffer, buf);
-
-    if ( (fp = fopen ("irctest.log", "ab")) != 0 )
-    {
-        fprintf (fp, "%s\n", buf);
-        fclose (fp);
-    }
-    print_new_messages();
-}
-
-void exit_cleanup()
-{
-    clear_all(server_buffer);
-    tcsetattr(0, TCSANOW, &termstate);
-}
-
-/* custom functions for testing */
 void show_prompt(irc_ctx_t ctx)
 {
     char nickbuf[128];
     snprintf(nickbuf, 128, "[%s]", ctx.nick);
     printf("%-*s ", (int)strlen(nickbuf)+2, nickbuf);
+}
+
+void kick_user(irc_session_t *s)
+{
+    irc_ctx_t *ctx = irc_get_ctx(s);
+    bufptr *active_channel = channel_buffer(ctx->active_channel);
+
+    printf("%-*s ", active_channel->nickwidth-11, ":kick>");
+    char *user = get_input();
+    printf("%-*s ", active_channel->nickwidth-11, ":reason>");
+    char *reason = get_input();
+
+    if (strcmp(user, "") == 0)
+    {
+        irc_cmd_names(s, ctx->active_channel);
+    }
+    else
+    {
+        irc_cmd_kick(s, user, ctx->active_channel, reason);
+    }
+
+    free(user);
+    free(reason);
+    return;
 }
 
 char * get_input()
@@ -360,7 +361,7 @@ char * get_input()
     size_t buffer_size = 0;
 
     getline(&input, &buffer_size, stdin);
-    input[strlen(input)-1] = '\0'; // Remote trailing newline
+    input[strlen(input)-1] = '\0'; // Remove trailing newline
 
     return input;
 }
@@ -431,7 +432,7 @@ void print_new_messages()
 
 void peek_channel(irc_session_t *s)
 {
-    irc_ctx_t *ctx = (irc_ctx_t*)irc_get_ctx(s);
+    irc_ctx_t *ctx = irc_get_ctx(s);
     bufptr *search_ptr = server_buffer;
     char *channel;
     bufptr *active_channel = channel_buffer(ctx->active_channel);
@@ -454,6 +455,12 @@ void peek_channel(irc_session_t *s)
     free(channel);
 
     return;
+}
+
+void exit_cleanup()
+{
+    clear_all(server_buffer);
+    tcsetattr(0, TCSANOW, &termstate);
 }
 
 void clear_nicklist(nickname *nick)

@@ -1,9 +1,9 @@
 #include "handlers.h"
 
 /* Run the event handling loop in it's own thread */
-void *irc_event_loop(void * sess)
+void *irc_event_loop(void *sess)
 {
-    irc_session_t * s;
+    irc_session_t *s;
     s = sess;
 
     if (irc_run(s))
@@ -15,7 +15,7 @@ void *irc_event_loop(void * sess)
     return NULL;
 }
 
-void event_join (irc_session_t * session, const char * event, const char * origin, const char ** params, unsigned int count)
+void event_join (irc_session_t *session, const char *event, const char *origin, const char **params, unsigned int count)
 {
     char nickbuf[128];
     char timebuf[9];
@@ -24,7 +24,7 @@ void event_join (irc_session_t * session, const char * event, const char * origi
 
     strftime(timebuf, 9, "%H:%M:%S", utc);
     irc_target_get_nick (origin, nickbuf, sizeof(nickbuf));
-    irc_ctx_t * ctx = (irc_ctx_t *) irc_get_ctx (session);
+    irc_ctx_t * ctx = irc_get_ctx(session);
     bufptr *message_buffer = channel_buffer(params[0]);
 
     if(strcmp(nickbuf, ctx->nick) == 0)
@@ -46,7 +46,7 @@ void event_join (irc_session_t * session, const char * event, const char * origi
     print_new_messages();
 }
 
-void event_quit(irc_session_t * session, const char * event, const char * origin, const char ** params, unsigned int count)
+void event_quit(irc_session_t *session, const char *event, const char *origin, const char **params, unsigned int count)
 {
     char nickbuf[128];
     char timebuf[9];
@@ -55,7 +55,7 @@ void event_quit(irc_session_t * session, const char * event, const char * origin
 
     strftime(timebuf, 9, "%H:%M:%S", utc);
     irc_target_get_nick (origin, nickbuf, sizeof(nickbuf));
-    irc_ctx_t * ctx = (irc_ctx_t *) irc_get_ctx (session);
+    irc_ctx_t * ctx = irc_get_ctx(session);
 
     char partmsg[1200];
     bufptr *search_ptr = server_buffer;
@@ -74,10 +74,9 @@ void event_quit(irc_session_t * session, const char * event, const char * origin
     return;
 }
 
-void event_part(irc_session_t * session, const char * event, const char * origin, const char ** params, unsigned int count)
+void event_kick(irc_session_t *session, const char *event, const char *origin, const char **params, unsigned int count)
 {
-    size_t chanlen = (sizeof(*params[0]) * (strlen(params[0] + 1)));
-    char *chanbuf = malloc(chanlen);
+    irc_ctx_t * ctx = irc_get_ctx(session);
     char nickbuf[128];
     char timebuf[9];
     time_t now = time(&now);
@@ -85,14 +84,88 @@ void event_part(irc_session_t * session, const char * event, const char * origin
 
     strftime(timebuf, 9, "%H:%M:%S", utc);
     irc_target_get_nick(origin, nickbuf, sizeof(nickbuf));
-    memcpy(chanbuf, params[0], chanlen);
-    irc_ctx_t * ctx = (irc_ctx_t *) irc_get_ctx (session);
+
+    if(strcmp(params[1], ctx->nick) == 0)
+    {
+        bufptr *doomed_buffer = channel_buffer(params[0]);
+
+        char kickmsg[277];
+        if(strcmp(params[1], "") == 0)
+            snprintf(kickmsg, 277, "[you have been kicked from \'%s\'.]", params[0]);
+        else if(strcmp(params[2], "") == 0)
+            snprintf(kickmsg, 277, "[you have been kicked from \'%s\' by %s.]", params[0], nickbuf);
+        else
+        {
+            char *reason = irc_color_strip_from_mirc(params[2]);
+            snprintf(kickmsg, 277, "[you have been kicked from \'%s\' by %s (%s).]", params[0], nickbuf, reason);
+            free(reason);
+        }
+        
+        server_buffer->curr = add_to_buffer(server_buffer, kickmsg);
+        server_buffer->curr->isread = 1;
+        
+        while(input_wait == 1)
+            sleep((double).1);
+        printf("%s\r\n\r\n", kickmsg);
+
+        if (strcmp(ctx->active_channel, params[0]) == 0)
+        {
+            if(doomed_buffer->nextbuf != NULL)
+            {
+                buffer_read_ptr=doomed_buffer->nextbuf->curr;
+                ctx->active_channel = doomed_buffer->nextbuf->channel;
+            }
+            else
+            {
+                buffer_read_ptr = doomed_buffer->prevbuf->curr;
+                ctx->active_channel = doomed_buffer->prevbuf->channel;
+            }
+
+            if(channel_buffer(ctx->active_channel) != server_buffer)
+                irc_cmd_names(session, ctx->active_channel);
+        }
+
+        clear_buffer(doomed_buffer);
+    }
+    else
+    {
+        char kickmsg[277];
+        bufptr *message_buffer = channel_buffer(params[0]);
+        delete_member(params[0], params[1]);
+        if(strcmp(params[1], "") == 0)
+            snprintf(kickmsg, 277, "\e[33;1m[%s] %s was kicked from \'%s\'.\e[0m", timebuf, params[1], params[0]);
+        else if(strcmp(params[2], "") == 0)
+            snprintf(kickmsg, 277, "\e[33;1m[%s] %s was kicked from \'%s\' by %s.\e[0m", timebuf, params[1], params[0], nickbuf);
+        else
+        {
+            char *reason = irc_color_strip_from_mirc(params[2]);
+            snprintf(kickmsg, 277, "\e[33;1m[%s] %s was kicked from \'%s\' by %s (%s).\e[0m", timebuf, params[1], params[0], nickbuf, reason);
+            free(reason);
+        }
+        message_buffer->curr = add_to_buffer(message_buffer, kickmsg);
+        message_buffer->curr->isread = strcmp(ctx->active_channel, params[0]) == 0 ? 0 : 1;
+        print_new_messages();
+    }
+
+    return;
+}
+
+void event_part(irc_session_t *session, const char *event, const char *origin, const char **params, unsigned int count)
+{
+    irc_ctx_t * ctx = irc_get_ctx(session);
+    char nickbuf[128];
+    char timebuf[9];
+    time_t now = time(&now);
+    struct tm *utc = gmtime(&now);
+
+    strftime(timebuf, 9, "%H:%M:%S", utc);
+    irc_target_get_nick(origin, nickbuf, sizeof(nickbuf));
 
     if(strcmp(nickbuf, ctx->nick) == 0)
     {
-        bufptr *doomed_buffer = channel_buffer(chanbuf);
+        bufptr *doomed_buffer = channel_buffer(params[0]);
 
-        if (strcmp(ctx->active_channel, chanbuf) == 0)
+        if (strcmp(ctx->active_channel, params[0]) == 0)
         {
             if(doomed_buffer->nextbuf != NULL)
             {
@@ -108,21 +181,23 @@ void event_part(irc_session_t * session, const char * event, const char * origin
             irc_cmd_names(session, ctx->active_channel);
         }
         else
+        {
             while(input_wait == 1)
                 sleep((double).1);
-            if(strcmp(ctx->active_channel, chanbuf))
-                printf("[you have been removed from \'%s\']\r\n", chanbuf);
+            if(strcmp(ctx->active_channel, params[0]))
+                printf("[you have left \'%s\']\r\n", params[0]);
+        }
 
         clear_buffer(doomed_buffer);
     }
     else
     {
         char partmsg[277];
-        bufptr *message_buffer = channel_buffer(chanbuf);
-        delete_member(chanbuf, nickbuf);
-        snprintf(partmsg, 277, "\e[33;1m[%s] %s has left %s.\e[0m", timebuf, nickbuf, chanbuf);
+        bufptr *message_buffer = channel_buffer(params[0]);
+        delete_member(params[0], nickbuf);
+        snprintf(partmsg, 277, "\e[33;1m[%s] %s has left %s.\e[0m", timebuf, nickbuf, params[0]);
         message_buffer->curr = add_to_buffer(message_buffer, partmsg);
-        message_buffer->curr->isread = strcmp(ctx->active_channel, chanbuf) == 0 ? 0 : 1;
+        message_buffer->curr->isread = strcmp(ctx->active_channel, params[0]) == 0 ? 0 : 1;
         print_new_messages();
     }
 
@@ -133,7 +208,7 @@ void event_topic(irc_session_t *session, const char *event, const char *origin, 
 {
     char nickbuf[128];
 
-    irc_ctx_t *ctx = (irc_ctx_t *)irc_get_ctx(session);
+    irc_ctx_t *ctx = irc_get_ctx(session);
     irc_target_get_nick(origin, nickbuf, sizeof(nickbuf));
     
     if(channel_isjoined(params[0]))
@@ -176,18 +251,23 @@ void event_topic(irc_session_t *session, const char *event, const char *origin, 
     return;
 }
 
-void event_connect(irc_session_t * session, const char * event, const char * origin, const char ** params, unsigned int count)
+void event_connect(irc_session_t *session, const char *event, const char *origin, const char **params, unsigned int count)
 {
-    irc_ctx_t *ctx = (irc_ctx_t *)irc_get_ctx(session);
-    dump_event (session, event, origin, params, count);
+    irc_ctx_t *ctx = irc_get_ctx(session);
+    //dump_event (session, event, origin, params, count);
+    /*
+    char *msgbuf = irc_color_strip_from_mirc(params[1]);
+    add_to_buffer(server_buffer, msgbuf);
+    free(msgbuf);
+    */
 
     if(ctx->active_channel != NULL)
         irc_cmd_join (session, ctx->active_channel, 0);
 }
 
-void event_channel (irc_session_t * session, const char * event, const char * origin, const char ** params, unsigned int count)
+void event_channel (irc_session_t *session, const char *event, const char *origin, const char **params, unsigned int count)
 {
-    irc_ctx_t * ctx = (irc_ctx_t *) irc_get_ctx (session);
+    irc_ctx_t * ctx = irc_get_ctx(session);
     char nickbuf[128];
     char nick[128];
     char messageline[2048];
@@ -212,7 +292,7 @@ void event_channel (irc_session_t * session, const char * event, const char * or
     return;
 }
 
-void event_action(irc_session_t * session, const char * event, const char * origin, const char ** params, unsigned int count)
+void event_action(irc_session_t *session, const char *event, const char *origin, const char **params, unsigned int count)
 {
     char nickbuf[128];
     char actionbuf[1024];
@@ -229,7 +309,7 @@ void event_action(irc_session_t * session, const char * event, const char * orig
     return;
 }
 
-void event_privmsg (irc_session_t * session, const char * event, const char * origin, const char ** params, unsigned int count)
+void event_privmsg (irc_session_t *session, const char *event, const char *origin, const char **params, unsigned int count)
 {
     char nickbuf[128];
     char *message = irc_color_strip_from_mirc(params[1]);
@@ -241,7 +321,7 @@ void event_privmsg (irc_session_t * session, const char * event, const char * or
     free(message);
 }
 
-void event_numeric (irc_session_t * session, unsigned int event, const char * origin, const char ** params, unsigned int count)
+void event_numeric (irc_session_t *session, unsigned int event, const char *origin, const char **params, unsigned int count)
 {
     switch(event)
     {
@@ -252,7 +332,7 @@ void event_numeric (irc_session_t * session, unsigned int event, const char * or
         }
         case 332:
         {
-            irc_ctx_t *ctx = (irc_ctx_t *)irc_get_ctx(session);
+            irc_ctx_t *ctx = irc_get_ctx(session);
     
             char topicmsg[1186];
             char timebuf[9];
@@ -288,7 +368,7 @@ void event_numeric (irc_session_t * session, unsigned int event, const char * or
         }
         case 366:
         {
-            irc_ctx_t *ctx = (irc_ctx_t *)irc_get_ctx(session);
+            irc_ctx_t *ctx = irc_get_ctx(session);
 
             if(strcmp(params[1], ctx->active_channel) == 0)
             {
@@ -330,9 +410,40 @@ void event_numeric (irc_session_t * session, unsigned int event, const char * or
 
             break;
         }
+        // Generic events handlers, dump to server buffer:
         case 372:
+        {
+            // MOTD text
+        }
         case 375:
+        {
+            // Start of MOTD
+        }
         case 376:
+        {
+            // End of MOTD
+        }
+        case 403:
+        {
+            // No such channel
+        }
+        case 442:
+        {
+            // Not on channel
+        }
+        case 461:
+        {
+            // Need More Parameters
+        }
+        case 466:
+        {
+            // Chan ops needed
+        }
+        case 476:
+        {
+            // Bad channel mask
+        }
+        default:
         {
             char *msgbuf = irc_color_strip_from_mirc(params[1]);
             add_to_buffer(server_buffer, msgbuf);
@@ -340,28 +451,22 @@ void event_numeric (irc_session_t * session, unsigned int event, const char * or
 
             print_new_messages();
             break;
-        }
-        //ignore events
-        case 1000:
-        {
-            break;
-        }
-        default:
-        {
+            /*
             char buf[24];
             sprintf (buf, "%d", event);
             dump_event (session, buf, origin, params, count);
+            */
         }
     }
 }
 
 /* A placeholder function for events we have not implemented */
-void dump_event (irc_session_t * session, const char * event, const char * origin, const char ** params, unsigned int count)
+void dump_event (irc_session_t *session, const char *event, const char *origin, const char **params, unsigned int count)
 {
-    char buf[512];
-    int cnt;
+    char *msgbuf = irc_color_strip_from_mirc(params[count-1]);
+    add_to_buffer(server_buffer, msgbuf);
+    free(msgbuf);
 
-    buf[0] = '\0';
-    strcat(buf, params[count-1]);
-    addlog("%s: %s", event, buf);
+    print_new_messages();
+    //addlog("%s: %s", event, buf);
 }

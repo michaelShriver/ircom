@@ -10,7 +10,6 @@
 #include "libircclient.h"
 #include "struct.h"
 
-void addlog(const char *, ...);
 bufline *add_to_buffer();
 bufptr *init_buffer();
 nickname *init_nickentry();
@@ -24,10 +23,11 @@ void send_message();
 void send_action();
 void send_privmsg();
 void show_prompt();
-void exit_cleanup();
+void kick_user();
 void rewind_buffer();
 void peek_channel();
 void print_new_messages();
+void exit_cleanup();
 void clear_nicklist();
 void clear_msglist();
 void clear_all();
