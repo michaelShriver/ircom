@@ -18,30 +18,30 @@ void *irc_event_loop(void * sess)
 void event_join (irc_session_t * session, const char * event, const char * origin, const char ** params, unsigned int count)
 {
     char nickbuf[128];
-    char chanbuf[128];
+    //char chanbuf[128];
     char timebuf[9];
     time_t now = time(&now);
     struct tm *utc = gmtime(&now);
 
     strftime(timebuf, 9, "%H:%M:%S", utc);
     irc_target_get_nick (origin, nickbuf, sizeof(nickbuf));
-    strcpy(chanbuf, params[0]);
+    //strcpy(chanbuf, params[0]);
     irc_ctx_t * ctx = (irc_ctx_t *) irc_get_ctx (session);
-    bufptr *message_buffer = channel_buffer(chanbuf);
+    bufptr *message_buffer = channel_buffer(params[0]);
 
     if(strcmp(nickbuf, ctx->nick) == 0)
     {
         buffer_read_ptr = message_buffer->curr;
-        strcpy(ctx->active_channel, chanbuf);
+        strncpy(ctx->active_channel, params[0], 127); //TODO: Dynamically allocate
         irc_cmd_user_mode (session, "+i");
     }
     else
-        add_member(chanbuf, nickbuf);
+        add_member(params[0], nickbuf);
 
     char joinmsg[277];
-    snprintf(joinmsg, 277, "\e[33;1m[%s] %s has joined %s.\e[0m", timebuf, nickbuf, chanbuf);
+    snprintf(joinmsg, 277, "\e[33;1m[%s] %s has joined %s.\e[0m", timebuf, nickbuf, params[0]);
     message_buffer->curr = add_to_buffer(message_buffer, joinmsg);
-    message_buffer->curr->isread = strcmp(ctx->active_channel, chanbuf) == 0 ? 0 : 1;
+    message_buffer->curr->isread = strcmp(ctx->active_channel, params[0]) == 0 ? 0 : 1;
     if(strcmp(nickbuf, ctx->nick) == 0)
         message_buffer->curr->isread = 1;
 
@@ -65,13 +65,11 @@ void event_quit(irc_session_t * session, const char * event, const char * origin
     {
         if(delete_member(search_ptr->nextbuf->channel, nickbuf))
         {
-            snprintf(partmsg, 1200, "\e[33;1m[%s] %s has left %s. (Quit: %s)\e[0m", timebuf, nickbuf, search_ptr->nextbuf->channel, params[0]);
+            snprintf(partmsg, 1200, "\e[33;1m[%s] %s has left %s. (%s)\e[0m", timebuf, nickbuf, search_ptr->nextbuf->channel, params[0]);
             search_ptr->nextbuf->curr = add_to_buffer(search_ptr->nextbuf, partmsg);
         }
         search_ptr = search_ptr->nextbuf;
     }
-    //snprintf(partmsg, 1200, "\e[33;1m[%s] %s has quit. (%s)\e[0m", timebuf, nickbuf, params[0]);
-    //server_buffer->curr = add_to_buffer(server_buffer, partmsg);
 
     print_new_messages();
 
@@ -80,15 +78,16 @@ void event_quit(irc_session_t * session, const char * event, const char * origin
 
 void event_part(irc_session_t * session, const char * event, const char * origin, const char ** params, unsigned int count)
 {
+    size_t chanlen = (sizeof(*params[0]) * (strlen(params[0] + 1)));
+    char *chanbuf = malloc(chanlen);
     char nickbuf[128];
-    char chanbuf[128];
     char timebuf[9];
     time_t now = time(&now);
     struct tm *utc = gmtime(&now);
 
     strftime(timebuf, 9, "%H:%M:%S", utc);
-    irc_target_get_nick (origin, nickbuf, sizeof(nickbuf));
-    strcpy(chanbuf, params[0]);
+    irc_target_get_nick(origin, nickbuf, sizeof(nickbuf));
+    memcpy(chanbuf, params[0], chanlen);
     irc_ctx_t * ctx = (irc_ctx_t *) irc_get_ctx (session);
 
     if(strcmp(nickbuf, ctx->nick) == 0)
@@ -100,12 +99,12 @@ void event_part(irc_session_t * session, const char * event, const char * origin
             if(doomed_buffer->nextbuf != NULL)
             {
                 buffer_read_ptr=doomed_buffer->nextbuf->curr;
-                strcpy(ctx->active_channel, doomed_buffer->nextbuf->channel);
+                strncpy(ctx->active_channel, doomed_buffer->nextbuf->channel, 127);
             }
             else
             {
                 buffer_read_ptr = doomed_buffer->prevbuf->curr;
-                strcpy(ctx->active_channel, doomed_buffer->prevbuf->channel);
+                strncpy(ctx->active_channel, doomed_buffer->prevbuf->channel, 127);
             }
 
             irc_cmd_names(session, ctx->active_channel);
@@ -134,24 +133,26 @@ void event_part(irc_session_t * session, const char * event, const char * origin
 
 void event_topic(irc_session_t *session, const char *event, const char *origin, const char **params, unsigned int count)
 {
-    char chanbuf[128];
+    //size_t chanlen = (sizeof(*params[0]) * (strlen(params[0]) + 1));
+    //char *chanbuf = malloc(chanlen); 
     char nickbuf[128];
 
     irc_ctx_t *ctx = (irc_ctx_t *)irc_get_ctx(session);
     irc_target_get_nick(origin, nickbuf, sizeof(nickbuf));
-    strncpy(chanbuf, params[0], sizeof(chanbuf));
+    //memcpy(chanbuf, params[0], chanlen);
     
-    if(channel_isjoined(chanbuf))
+    if(channel_isjoined(params[0]))
     {
         char topicmsg[1186];
         char timebuf[9];
         time_t now = time(&now);
         struct tm *utc = gmtime(&now);
         strftime(timebuf, 9, "%H:%M:%S", utc);
-        bufptr *message_buffer = channel_buffer(chanbuf);
-        char *nick = malloc((sizeof(char)*strlen(nickbuf))+1);
+        bufptr *message_buffer = channel_buffer(params[0]);
+        size_t nicklen = (sizeof(*nickbuf) * (strlen(nickbuf) + 1));
+        char *nick = malloc(nicklen);
         char *topic = irc_color_strip_from_mirc(params[1]);
-        strcpy(nick, nickbuf);
+        memcpy(nick, nickbuf, nicklen);
 
         if(message_buffer->topic != NULL)
         {
@@ -176,6 +177,7 @@ void event_topic(irc_session_t *session, const char *event, const char *origin, 
 
         print_new_messages();
     }
+    //free(chanbuf);
 
     return;
 }
@@ -185,8 +187,8 @@ void event_connect(irc_session_t * session, const char * event, const char * ori
     irc_ctx_t *ctx = (irc_ctx_t *)irc_get_ctx(session);
     dump_event (session, event, origin, params, count);
 
-    if(ctx->initial_chan != NULL)
-        irc_cmd_join (session, ctx->initial_chan, 0);
+    if(ctx->active_channel != NULL)
+        irc_cmd_join (session, ctx->active_channel, 0);
 }
 
 void event_channel (irc_session_t * session, const char * event, const char * origin, const char ** params, unsigned int count)
@@ -194,7 +196,7 @@ void event_channel (irc_session_t * session, const char * event, const char * or
     irc_ctx_t * ctx = (irc_ctx_t *) irc_get_ctx (session);
     char nickbuf[128];
     char nick[128];
-    char chanbuf[128];
+    //char chanbuf[128];
     //char msgbuf[1024];
     char messageline[2048];
 
@@ -204,17 +206,17 @@ void event_channel (irc_session_t * session, const char * event, const char * or
     if ( !origin )
         return;
 
-    strcpy(chanbuf, params[0]);
+    //strcpy(chanbuf, params[0]);
     //strcpy(msgbuf, params[1]);
     char *msgbuf = irc_color_strip_from_mirc(params[1]);
     irc_target_get_nick(origin, nickbuf, sizeof(nickbuf));
-    bufptr *message_buffer = channel_buffer(chanbuf);
+    bufptr *message_buffer = channel_buffer(params[0]);
     snprintf(nick, 128, "\e[36;1m[%s]\e[0m", nickbuf);
     message_buffer->nickwidth = (strlen(nick)) > message_buffer->nickwidth ? (strlen(nick)) : message_buffer->nickwidth;
 
     snprintf(messageline, 2048, "%-*s %s", message_buffer->nickwidth, nick, msgbuf);
     message_buffer->curr = add_to_buffer(message_buffer, messageline);
-    message_buffer->curr->isread = strcmp(ctx->active_channel, chanbuf) == 0 ? 0 : 1;
+    message_buffer->curr->isread = strcmp(ctx->active_channel, params[0]) == 0 ? 0 : 1;
 
     print_new_messages();
     return;
@@ -224,11 +226,11 @@ void event_action(irc_session_t * session, const char * event, const char * orig
 {
     char nickbuf[128];
     char actionbuf[1024];
-    char chanbuf[128];
+    //char chanbuf[128];
     char *action = irc_color_strip_from_mirc(params[1]);
 
-    strcpy(chanbuf, params[0]);
-    bufptr *message_buffer = channel_buffer(chanbuf);
+    //strcpy(chanbuf, params[0]);
+    bufptr *message_buffer = channel_buffer(params[0]);
 
     irc_target_get_nick (origin, nickbuf, sizeof(nickbuf));
     snprintf(actionbuf, 1024, "\e[32;1m<%s %s>\e[0m", nickbuf, action);
@@ -262,17 +264,17 @@ void event_numeric (irc_session_t * session, unsigned int event, const char * or
         }
         case 332:
         {
-            char chanbuf[128];
+            //char chanbuf[128];
 
             irc_ctx_t *ctx = (irc_ctx_t *)irc_get_ctx(session);
-            strncpy(chanbuf, params[1], sizeof(chanbuf));
+            //strncpy(chanbuf, params[1], sizeof(chanbuf));
     
             char topicmsg[1186];
             char timebuf[9];
             time_t now = time(&now);
             struct tm *utc = gmtime(&now);
             strftime(timebuf, 9, "%H:%M:%S", utc);
-            bufptr *message_buffer = channel_buffer(chanbuf);
+            bufptr *message_buffer = channel_buffer(params[1]);
             char *topic = irc_color_strip_from_mirc(params[2]);
 
             message_buffer->topic = topic;
@@ -285,8 +287,10 @@ void event_numeric (irc_session_t * session, unsigned int event, const char * or
         }
         case 353:
         {
-            char nicks[strlen(params[3]+1)];
-            strcpy(nicks, params[3]);
+            size_t nicklen = (sizeof(*params[3]) * (strlen(params[3]) + 1));
+            char *nicks = malloc(nicklen);
+            //char nicks[strlen(params[3]+1)];
+            memcpy(nicks, params[3], nicklen);
 
             char *nickbuf = strtok(nicks, " ");
             while(nickbuf != NULL)
@@ -294,6 +298,7 @@ void event_numeric (irc_session_t * session, unsigned int event, const char * or
                 add_member(params[2], nickbuf);
                 nickbuf = strtok(NULL, " "); 
             }
+            free(nicks);
 
             break;
         }
@@ -305,7 +310,7 @@ void event_numeric (irc_session_t * session, unsigned int event, const char * or
             {
                 bufptr *active_channel = channel_buffer(ctx->active_channel);
                 nickname *search_ptr = active_channel->nicklist;
-                char nickbuf[128];
+                //char nickbuf[128];
 
                 while(input_wait == 1)
                     sleep((double).1);
@@ -318,16 +323,19 @@ void event_numeric (irc_session_t * session, unsigned int event, const char * or
                     {
                         if(search_ptr != NULL)
                         {
+                            size_t nicklen = (sizeof(*search_ptr->handle) * (strlen(search_ptr->handle) + 2));
+                            char *nickbuf = malloc(nicklen);
                             if(search_ptr->mode == '\0')
                             {
-                                strncpy(nickbuf, search_ptr->handle, sizeof(nickbuf));
+                                memcpy(nickbuf, search_ptr->handle, nicklen);
                             }
                             else
                             {
-                                snprintf(nickbuf, sizeof(nickbuf), "%c%s", search_ptr->mode, search_ptr->handle);
+                                snprintf(nickbuf, nicklen, "%c%s", search_ptr->mode, search_ptr->handle);
                             }
                             printf("%-20s", nickbuf);
                             search_ptr = search_ptr->next;
+                            free(nickbuf);
                         }
                         else
                             break;
@@ -336,6 +344,7 @@ void event_numeric (irc_session_t * session, unsigned int event, const char * or
                 }
             }
             printf("\r\n");
+
             break;
         }
         case 372:

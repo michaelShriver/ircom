@@ -2,11 +2,12 @@
 
 bufptr *init_buffer(char *channel)
 {
-    char *bufchan = malloc(sizeof(char) * (strlen(channel) + 1));
-    strcpy(bufchan, channel);
+    size_t chanlen = (sizeof(*channel) * (strlen(channel) + 1));
+    char *bufchan = malloc(chanlen);
+    memcpy(bufchan, channel, chanlen);
 
     bufptr *channel_buffer = malloc(sizeof(struct bufptr));
-    channel_buffer->head = channel_buffer->curr = (struct bufline*) malloc(sizeof(struct bufline));
+    channel_buffer->head = channel_buffer->curr = malloc(sizeof(struct bufline));
     channel_buffer->channel = bufchan;
     channel_buffer->topic = NULL;
     channel_buffer->topicsetby = NULL;
@@ -107,6 +108,7 @@ int add_member(char *channel, char *nick)
 {
     bufptr *chanbuf = channel_buffer(channel);
     nickname *search_ptr = chanbuf->nicklist;
+    size_t nicklen = (sizeof(char) * (strlen(nick) + 1));
     char mode = '\0';
     char modeset[] = "~&@%+";
 
@@ -124,8 +126,8 @@ int add_member(char *channel, char *nick)
     {
         chanbuf->nicklist = init_nickentry();
         chanbuf->nicklist->mode = mode;
-        chanbuf->nicklist->handle = malloc((sizeof(char)*strlen(nick)) + 1);
-        strncpy(chanbuf->nicklist->handle, nick, strlen(nick));
+        chanbuf->nicklist->handle = malloc(nicklen);
+        memcpy(chanbuf->nicklist->handle, nick, nicklen);
         chanbuf->nickcount++;
 
         return 1;
@@ -150,8 +152,8 @@ int add_member(char *channel, char *nick)
 
     search_ptr->next = init_nickentry();
     search_ptr->next->mode = mode;
-    search_ptr->next->handle = malloc((sizeof(char)*strlen(nick)) + 1);
-    strncpy(search_ptr->next->handle, nick, strlen(nick));
+    search_ptr->next->handle = malloc(nicklen);
+    memcpy(search_ptr->next->handle, nick, nicklen);
     chanbuf->nickcount++;
 
     return 1;
@@ -208,8 +210,9 @@ int delete_member(char *channel, char *nick)
 /* Add a message to the end of the message buffer, return a pointer to new entry */
 bufline *add_to_buffer(bufptr *msgbuffer, char *cmsg)
 {
-    char *messageline = (char*)malloc(sizeof(char) * (strlen(cmsg) + 1));
-    strcpy(messageline, cmsg);
+    size_t msglen = (sizeof(*cmsg) * (strlen(cmsg) + 1)); 
+    char *messageline = malloc(msglen);
+    memcpy(messageline, cmsg, msglen);
 
     /* Ensure we are at the end of the buffer */
     while (msgbuffer->curr->next != NULL)
@@ -227,7 +230,7 @@ bufline *add_to_buffer(bufptr *msgbuffer, char *cmsg)
     }
 
     /* Add a new message to the end of the buffer */
-    bufline *newmsg = (struct bufline*) malloc(sizeof(struct bufline));
+    bufline *newmsg = malloc(sizeof(struct bufline));
     msgbuffer->curr->next = newmsg;
     newmsg->prev = msgbuffer->curr;
     newmsg->next = NULL;
@@ -259,7 +262,7 @@ void send_message(irc_session_t *s)
 
 
     int size = sizeof(char) * (strlen(ctx->nick) + strlen(input) + message_buffer->nickwidth);
-    char *bufferline = (char *)malloc(size);
+    char *bufferline = malloc(size);
 
     snprintf(bufferline, size, "%-*s %s", message_buffer->nickwidth, nickbuf, input);
     irc_cmd_msg(s, ctx->active_channel, input);
@@ -285,7 +288,7 @@ void send_action(irc_session_t *s)
     }
 
     int size = sizeof(char) * (strlen(ctx->nick) + strlen(action) + 15);
-    char *bufferline = (char *)malloc(size);
+    char *bufferline = malloc(size);
 
     snprintf(bufferline, size, "\e[32;1m<%s %s>\e[0m", ctx->nick, action);
     irc_cmd_me(s, ctx->active_channel, action);

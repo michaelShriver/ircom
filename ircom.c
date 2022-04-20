@@ -71,8 +71,8 @@ int main(int argc, char **argv)
     /* Initialize my user-defined IRC context, with two buffers */
     irc_ctx_t ctx;
     ctx.nick = argv[2];
-    ctx.initial_chan = argv[3];
-    strcpy(ctx.active_channel, ctx.initial_chan);
+    //ctx.initial_chan = argv[3];
+    strcpy(ctx.active_channel, argv[3]);
 
     irc_set_ctx(sess, &ctx);
 
