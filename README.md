@@ -51,3 +51,7 @@ And then build ircom:
     cd ircom
     make CFLAGS="-I$HOME/.local/include -L$HOME/.local/lib"
     make PREFIX=$HOME/.local install
+
+# Execution
+
+Usage: ircom <server> <nick> <channel>

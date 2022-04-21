@@ -36,7 +36,7 @@ void event_join (irc_session_t *session, const char *event, const char *origin, 
     else
         add_member(params[0], nickbuf);
 
-    char joinmsg[277];
+    char joinmsg[290];
     snprintf(joinmsg, 277, "\e[33;1m[%s] %s has joined %s.\e[0m", timebuf, nickbuf, params[0]);
     message_buffer->curr = add_to_buffer(message_buffer, joinmsg);
     message_buffer->curr->isread = strcmp(ctx->active_channel, params[0]) == 0 ? 0 : 1;
@@ -192,7 +192,7 @@ void event_part(irc_session_t *session, const char *event, const char *origin, c
     }
     else
     {
-        char partmsg[277];
+        char partmsg[288];
         bufptr *message_buffer = channel_buffer(params[0]);
         delete_member(params[0], nickbuf);
         snprintf(partmsg, 277, "\e[33;1m[%s] %s has left %s.\e[0m", timebuf, nickbuf, params[0]);
@@ -269,7 +269,7 @@ void event_channel (irc_session_t *session, const char *event, const char *origi
 {
     irc_ctx_t * ctx = irc_get_ctx(session);
     char nickbuf[128];
-    char nick[128];
+    char nick[141];
     char messageline[2048];
 
     if ( count != 2 )

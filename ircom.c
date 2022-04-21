@@ -159,7 +159,7 @@ int main(int argc, char **argv)
                     {
                         printf("YES\n");
                         FILE *dumpfilep;
-                        char dumpfilen[128];
+                        char dumpfilen[152];
                         char timebuf[9];
                         time_t now = time(&now);
                         struct tm *utc = gmtime(&now);
