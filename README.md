@@ -4,8 +4,6 @@ A Blessed IRC Client
 
 ircom is a comand-line IRC client implemented without curses. The client is designed with slow-to-update serial terminals and physical teletypes in mind. All of it's output is printed line-by-line, with no screen refreshes. Curses-based clients update the entire screen with every line, which is problematic on low-capability vintage hardware.
 
-Buidling requires libircclient 1.10 and libpthreads.
-
 The control scheme is modeled after SDF's [commode](http://jwodder.freeshell.org/sdf/commands.html) script.
 
 # Implemented commands:
@@ -19,3 +17,15 @@ The control scheme is modeled after SDF's [commode](http://jwodder.freeshell.org
           w - who is in the room   < - surf rooms backward  > - surf rooms forward
 
         To begin TALK MODE, press [SPACE]
+
+# Installation
+
+Building requires libircclient:
+
+    # apt install libircclient-dev
+
+Clone the source repo and make:
+
+    $ git clone https://github.com/michaelshriver/ircom
+    $ make && make install
+
