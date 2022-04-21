@@ -54,4 +54,4 @@ And then build ircom:
 
 # Execution
 
-Usage: ircom <server> <nick> <channel>
+    Usage: ircom <server> <nick> <channel>
