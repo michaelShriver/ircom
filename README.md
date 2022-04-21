@@ -29,3 +29,25 @@ Clone the source repo and make:
     $ git clone https://github.com/michaelshriver/ircom
     $ make && make install
 
+# Installation on the MetaArray
+
+Download and install libircclient locally from source:
+
+[https://sourceforge.net/projects/libircclient/](https://sourceforge.net/projects/libircclient/files/libircclient/1.10/libircclient-1.10.tar.gz/download)
+
+    tar xvzf libircclient-1.10.tar.gz && cd libircclient-1.10
+    ./configure --enable-shared --prefix=$HOME/.local --libdir=$HOME/.local/lib
+    make && make install
+
+Update env variables: (consider adding these to your .profile)
+
+    export C_INCLUDE_PATH="$C_INCLUDE_PATH:$HOME/.local/include"
+    export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$HOME/.local/lib"
+    export PATH="$PATH:$HOME/.local/bin"w
+
+And then build ircom:
+
+    git clone https://github.com/michaelShriver/ircom.git
+    cd ircom
+    make CFLAGS="-I$HOME/.local/include -L$HOME/.local/lib"
+    make PREFIX=$HOME/.local install
