@@ -106,6 +106,16 @@ int nick_is_member(char *channel, char *nick)
 
 int add_member(char *channel, char *nick)
 {
+    if(!channel_isjoined(channel))
+    {
+        char errmsg[256];
+        snprintf(errmsg, 256, "<error adding %s to nonexistant channel \'%s\'.>", nick, channel);
+        add_to_buffer(server_buffer, errmsg);
+
+        print_new_messages();
+        return -1;
+    }
+
     bufptr *chanbuf = channel_buffer(channel);
     nickname *search_ptr = chanbuf->nicklist;
     size_t nicklen = (sizeof(char) * (strlen(nick) + 1));
@@ -135,7 +145,7 @@ int add_member(char *channel, char *nick)
 
     if(strcmp(nick, search_ptr->handle) == 0)
     {
-        search_ptr->mode = mode;
+        search_ptr->mode = mode; // Update mode if it has changed
         return 0;
     }
 
@@ -161,6 +171,16 @@ int add_member(char *channel, char *nick)
 
 int delete_member(char *channel, char *nick)
 {
+    if(!channel_isjoined(channel))
+    {
+        char errmsg[256];
+        snprintf(errmsg, 256, "<error removing %s from nonexistant channel \'%s\'.>", nick, channel);
+        add_to_buffer(server_buffer, errmsg);
+
+        print_new_messages();
+        return -1;
+    }
+
     bufptr *chanbuf = channel_buffer(channel);
     nickname *search_ptr = chanbuf->nicklist;
     char mode = '\0';
@@ -461,6 +481,17 @@ void exit_cleanup()
 {
     clear_all(server_buffer);
     tcsetattr(0, TCSANOW, &termstate);
+}
+
+void reset_nicklist(char *channel)
+{
+    bufptr *message_buffer = channel_buffer(channel);
+
+    clear_nicklist(message_buffer->nicklist);
+    message_buffer->nicklist = NULL;
+    message_buffer->nickcount = 0;
+
+    return;
 }
 
 void clear_nicklist(nickname *nick)

@@ -28,6 +28,7 @@ void rewind_buffer();
 void peek_channel();
 void print_new_messages();
 void exit_cleanup();
+void reset_nicklist();
 void clear_nicklist();
 void clear_msglist();
 void clear_all();

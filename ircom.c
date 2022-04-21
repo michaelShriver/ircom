@@ -117,6 +117,7 @@ int main(int argc, char **argv)
                 }
                 else
                 {       
+                    reset_nicklist(ctx.active_channel);
                     irc_cmd_names(sess, ctx.active_channel);
                 }
                 break;
@@ -133,6 +134,7 @@ int main(int argc, char **argv)
                 {
                     ctx.active_channel = channel_buffer(ctx.active_channel)->nextbuf->channel;
                     buffer_read_ptr = channel_buffer(ctx.active_channel)->curr;
+                    reset_nicklist(ctx.active_channel);
                     irc_cmd_names(sess, ctx.active_channel);
                 }
                 break;
@@ -224,11 +226,10 @@ int main(int argc, char **argv)
                 printf("\nirCOMMODE (c)2023 - Version .27\n\n");
 
                 printf("  \e[33;1mc\e[0m - clear                \e[33;1md\e[0m - dump out of ircom    \e[33;1me\e[0m - emote\n");
-                printf("  \e[33;1mg\e[0m - goto a room          \e[33;1mh\e[0m - command help        *\e[33;1mi\e[0m - ignore a user\n");
-                printf("  \e[33;1mk\e[0m - kick a user          \e[33;1ml\e[0m - list open rooms     *\e[33;1mm\e[0m - mute user toggle\n");
-                printf("  \e[33;1mp\e[0m - peek into room       \e[33;1mq\e[0m - quit commode         \e[33;1mr\e[0m - room history\n");
-                printf("  \e[33;1mR\e[0m - extended history     \e[33;1ms\e[0m - send private         \e[33;1mw\e[0m - who is in the room\n");
-                printf("  \e[33;1m<\e[0m - surf rooms backward \e[33;1m >\e[0m - surf rooms forward\n\n");
+                printf("  \e[33;1mg\e[0m - goto a room          \e[33;1mh\e[0m - command help         \e[33;1mk\e[0m - kick a user\n");
+                printf("  \e[33;1ml\e[0m - list open rooms      \e[33;1mp\e[0m - peek into room       \e[33;1mq\e[0m - quit commode\n");
+                printf("  \e[33;1mr\e[0m - room history         \e[33;1mR\e[0m - extended history     \e[33;1ms\e[0m - send private\n");
+                printf("  \e[33;1mw\e[0m - who is in the room   \e[33;1m<\e[0m - surf rooms backward  \e[33;1m>\e[0m - surf rooms forward\n\n");
 
                 printf("To begin TALK MODE, press [SPACE]\n\n");
 
@@ -245,6 +246,10 @@ int main(int argc, char **argv)
                 printf("--------------------------------------------------------------------------------\r\n");
                 irc_cmd_list(sess, NULL);
                 break;
+            }
+            case 'm':
+            {
+                
             }
             case 'p':
             {
@@ -296,6 +301,7 @@ int main(int argc, char **argv)
             }
             case 'w':
             {
+                reset_nicklist(ctx.active_channel);
                 irc_cmd_names(sess, ctx.active_channel);
 
                 break;

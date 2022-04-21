@@ -445,17 +445,12 @@ void event_numeric (irc_session_t *session, unsigned int event, const char *orig
         }
         default:
         {
-            char *msgbuf = irc_color_strip_from_mirc(params[1]);
+            char *msgbuf = irc_color_strip_from_mirc(params[count-1]);
             add_to_buffer(server_buffer, msgbuf);
             free(msgbuf);
 
             print_new_messages();
             break;
-            /*
-            char buf[24];
-            sprintf (buf, "%d", event);
-            dump_event (session, buf, origin, params, count);
-            */
         }
     }
 }
@@ -468,5 +463,4 @@ void dump_event (irc_session_t *session, const char *event, const char *origin, 
     free(msgbuf);
 
     print_new_messages();
-    //addlog("%s: %s", event, buf);
 }
