@@ -43,7 +43,7 @@ Update env variables: (consider adding these to your .profile)
 
     export C_INCLUDE_PATH="$C_INCLUDE_PATH:$HOME/.local/include"
     export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$HOME/.local/lib"
-    export PATH="$PATH:$HOME/.local/bin"w
+    export PATH="$PATH:$HOME/.local/bin"
 
 And then build ircom:
 
