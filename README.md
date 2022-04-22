@@ -22,12 +22,12 @@ The control scheme is modeled after SDF's [commode](http://jwodder.freeshell.org
 
 Building requires libircclient:
 
-    # apt install libircclient-dev
+    apt install libircclient-dev
 
 Clone the source repo and make:
 
-    $ git clone https://github.com/michaelshriver/ircom
-    $ make && make install
+    git clone https://github.com/michaelshriver/ircom
+    make && make install
 
 # Installation on the MetaArray
 
