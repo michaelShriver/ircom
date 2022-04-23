@@ -282,7 +282,7 @@ int main(int argc, char **argv)
                 char *input;
                 int lines;
                 input_wait = 1;
-                printf("%-*s ", channel_buffer(ctx.active_channel)->nickwidth, ":lines>");
+                printf("%-*s ", channel_buffer(ctx.active_channel)->nickwidth-11, ":lines>");
                 input = get_input();
                 sscanf(input, "%d", &lines);
                 free(input);
