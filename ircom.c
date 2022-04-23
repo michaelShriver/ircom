@@ -5,6 +5,7 @@ bufline *buffer_read_ptr;
 struct termios termstate;
 struct winsize ttysize;
 bool input_wait = 0;
+time_t last_reset;
 
 int main(int argc, char **argv)
 {
@@ -32,6 +33,9 @@ int main(int argc, char **argv)
 
     /* Zero out memory allocation for callbacks struct */
     memset (&callbacks, 0, sizeof(callbacks));
+
+    /* Set initial timestamp */
+    last_reset = time(NULL);
 
     callbacks.event_connect = event_connect;
     callbacks.event_join = event_join;

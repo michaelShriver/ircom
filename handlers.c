@@ -282,7 +282,10 @@ void event_channel (irc_session_t *session, const char *event, const char *origi
     irc_target_get_nick(origin, nickbuf, sizeof(nickbuf));
     bufptr *message_buffer = channel_buffer(params[0]);
     snprintf(nick, 128, "\e[36;1m[%s]\e[0m", nickbuf);
-    message_buffer->nickwidth = (strlen(nick)) > message_buffer->nickwidth ? (strlen(nick)) : message_buffer->nickwidth;
+    if (time_reset())
+        message_buffer->nickwidth = strlen(nickbuf);
+    else
+        message_buffer->nickwidth = (strlen(nick)) > message_buffer->nickwidth ? (strlen(nick)) : message_buffer->nickwidth;
 
     snprintf(messageline, 2048, "%-*s %s", message_buffer->nickwidth, nick, msgbuf);
     message_buffer->curr = add_to_buffer(message_buffer, messageline);

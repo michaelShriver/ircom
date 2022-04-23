@@ -19,6 +19,7 @@ int channel_isjoined();
 int nick_is_member();
 int add_member();
 int delete_member();
+int time_reset();
 void send_message();
 void send_action();
 void send_privmsg();
