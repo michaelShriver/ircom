@@ -333,7 +333,7 @@ void event_numeric (irc_session_t *session, unsigned int event, const char *orig
         case 1:
         {
             irc_ctx_t *ctx = irc_get_ctx(session);
-            strcpy(ctx->nick, params[0]);
+            memcpy(ctx->nick, params[0], 128);
 
             char *msgbuf = irc_color_strip_from_mirc(params[count-1]);
             server_buffer->curr = add_to_buffer(server_buffer, msgbuf);
