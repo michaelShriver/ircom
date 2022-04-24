@@ -243,7 +243,7 @@ void event_topic(irc_session_t *session, const char *event, const char *origin, 
             message_buffer->topicsetby = nick;
 
         snprintf(topicmsg, 1186, "\e[33;1m[%s] TOPIC: %s (%s)\e[0m", timebuf, topic, nick);
-        add_to_buffer(message_buffer, topicmsg);
+        message_buffer->curr = add_to_buffer(message_buffer, topicmsg);
 
         print_new_messages();
     }
@@ -257,7 +257,7 @@ void event_connect(irc_session_t *session, const char *event, const char *origin
     //dump_event (session, event, origin, params, count);
     /*
     char *msgbuf = irc_color_strip_from_mirc(params[1]);
-    add_to_buffer(server_buffer, msgbuf);
+    server_buffer->curr dd_to_buffer(server_buffer, msgbuf);
     free(msgbuf);
     */
 
@@ -336,7 +336,7 @@ void event_numeric (irc_session_t *session, unsigned int event, const char *orig
             strcpy(ctx->nick, params[0]);
 
             char *msgbuf = irc_color_strip_from_mirc(params[count-1]);
-            add_to_buffer(server_buffer, msgbuf);
+            server_buffer->curr = add_to_buffer(server_buffer, msgbuf);
             free(msgbuf);
 
             print_new_messages();
@@ -362,7 +362,7 @@ void event_numeric (irc_session_t *session, unsigned int event, const char *orig
             message_buffer->topic = topic;
 
             snprintf(topicmsg, 1186, "\e[33;1m[%s] TOPIC: %s\e[0m", timebuf, topic);
-            add_to_buffer(message_buffer, topicmsg);
+            message_buffer->curr = add_to_buffer(message_buffer, topicmsg);
 
             print_new_messages();
             break;
@@ -440,7 +440,7 @@ void event_numeric (irc_session_t *session, unsigned int event, const char *orig
         {
             // End of MOTD
             char *msgbuf = irc_color_strip_from_mirc(params[count-1]);
-            add_to_buffer(server_buffer, msgbuf);
+            server_buffer->curr = add_to_buffer(server_buffer, msgbuf);
             free(msgbuf);
 
             print_new_messages();

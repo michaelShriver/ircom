@@ -110,7 +110,7 @@ int add_member(char *channel, char *nick)
     {
         char errmsg[256];
         snprintf(errmsg, 256, "<error adding %s to nonexistant channel \'%s\'.>", nick, channel);
-        add_to_buffer(server_buffer, errmsg);
+        server_buffer->curr = add_to_buffer(server_buffer, errmsg);
 
         print_new_messages();
         return -1;
@@ -175,7 +175,7 @@ int delete_member(char *channel, char *nick)
     {
         char errmsg[256];
         snprintf(errmsg, 256, "<error removing %s from nonexistant channel \'%s\'.>", nick, channel);
-        add_to_buffer(server_buffer, errmsg);
+        server_buffer->curr = add_to_buffer(server_buffer, errmsg);
 
         print_new_messages();
         return -1;
