@@ -11,7 +11,7 @@ bufptr *init_buffer(char *channel)
     channel_buffer->channel = bufchan;
     channel_buffer->topic = NULL;
     channel_buffer->topicsetby = NULL;
-    channel_buffer->nickwidth = 0;
+    channel_buffer->nickwidth = 11;
     channel_buffer->nickcount = 0;
     channel_buffer->nicklist = NULL;
     channel_buffer->curr->prev = NULL;
