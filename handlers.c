@@ -263,6 +263,8 @@ void event_connect(irc_session_t *session, const char *event, const char *origin
 
     if(ctx->active_channel != NULL)
         irc_cmd_join (session, ctx->active_channel, 0);
+
+    return;
 }
 
 void event_channel (irc_session_t *session, const char *event, const char *origin, const char **params, unsigned int count)
@@ -283,10 +285,9 @@ void event_channel (irc_session_t *session, const char *event, const char *origi
     bufptr *message_buffer = channel_buffer(params[0]);
     snprintf(nick, 128, "\e[36;1m[%s]\e[0m", nickbuf);
     if (time_reset())
-        message_buffer->nickwidth = strlen(nickbuf);
+        message_buffer->nickwidth = strlen(nick);
     else
         message_buffer->nickwidth = (strlen(nick)) > message_buffer->nickwidth ? (strlen(nick)) : message_buffer->nickwidth;
-
     snprintf(messageline, 2048, "%-*s %s", message_buffer->nickwidth, nick, msgbuf);
     message_buffer->curr = add_to_buffer(message_buffer, messageline);
     message_buffer->curr->isread = strcmp(ctx->active_channel, params[0]) == 0 ? 0 : 1;

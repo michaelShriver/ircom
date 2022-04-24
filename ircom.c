@@ -90,7 +90,7 @@ int main(int argc, char **argv)
     int err = pthread_create(&event_thread, NULL, irc_event_loop, (void *)sess);
     if (err)
     {
-        printf ("Failed to create thread\n");
+        printf ("FATAL: Failed thread IRC event handler\n");
         exit(1);
     }
 
@@ -211,8 +211,9 @@ int main(int argc, char **argv)
                 input = get_input();
                 if (channel_isjoined(input))
                 {
-                    ctx.active_channel = channel_buffer(input)->channel;
-                    buffer_read_ptr = channel_buffer(ctx.active_channel)->curr;
+                    bufptr *chanbuf = channel_buffer(input);
+                    ctx.active_channel = chanbuf->channel;
+                    buffer_read_ptr = chanbuf->curr;
                     irc_cmd_names(sess, ctx.active_channel);
                 }
                 else

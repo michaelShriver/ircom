@@ -231,7 +231,7 @@ int time_reset()
 {
     time_t current_time = time(NULL);
 
-    if (current_time > last_reset + 300)
+    if (current_time > (last_reset + 900))
     {
         last_reset = current_time;
         return 1;
@@ -280,6 +280,7 @@ void send_message(irc_session_t *s)
     char *input;
     char nickbuf[128];
     bufptr *message_buffer = channel_buffer(ctx->active_channel);
+    int nickwidth_tmp = message_buffer->nickwidth;
     if(message_buffer == server_buffer)
     {
         printf("<you can't send messages to the server buffer>\n");       
@@ -296,6 +297,7 @@ void send_message(irc_session_t *s)
     if (strcmp(input, "") == 0)
     {
         free(input);
+        message_buffer->nickwidth = nickwidth_tmp;
         printf("<no message sent>\n");
         return;
     }
