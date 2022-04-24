@@ -227,13 +227,12 @@ int delete_member(char *channel, char *nick)
     return 0;
 }
 
-int time_reset()
+int nickwidth_timer()
 {
     time_t current_time = time(NULL);
 
-    if (current_time > (last_reset + 900))
+    if (current_time > (nickwidth_set_at + 300))
     {
-        last_reset = current_time;
         return 1;
     }    
 
@@ -287,10 +286,11 @@ void send_message(irc_session_t *s)
         return;
     }
     snprintf(nickbuf, 128, "\e[36;1m[%s]\e[0m", ctx->nick);
-    if (time_reset())
+    if (nickwidth_timer() || strlen(nickbuf) > message_buffer->nickwidth)
+    {
         message_buffer->nickwidth = strlen(nickbuf);
-    else
-        message_buffer->nickwidth = strlen(nickbuf) > message_buffer->nickwidth ? strlen(nickbuf) : message_buffer->nickwidth;
+        nickwidth_set_at = time(NULL);
+    }
 
     printf("%-*s ", message_buffer->nickwidth, nickbuf);
     input = get_input();

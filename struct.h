@@ -54,4 +54,4 @@ extern bufline *buffer_read_ptr;
 extern struct termios termstate;
 extern struct winsize ttysize;
 extern bool input_wait;
-extern time_t last_reset;
+extern time_t nickwidth_set_at;
