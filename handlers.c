@@ -330,6 +330,18 @@ void event_numeric (irc_session_t *session, unsigned int event, const char *orig
 {
     switch(event)
     {
+        case 1:
+        {
+            irc_ctx_t *ctx = irc_get_ctx(session);
+            strcpy(ctx->nick, params[0]);
+
+            char *msgbuf = irc_color_strip_from_mirc(params[count-1]);
+            add_to_buffer(server_buffer, msgbuf);
+            free(msgbuf);
+
+            print_new_messages();
+            break;
+        }
         case 322:
         {
            printf("%13s %3s  %s\r\n", params[1], params[2], params[3]); 
@@ -427,6 +439,12 @@ void event_numeric (irc_session_t *session, unsigned int event, const char *orig
         case 376:
         {
             // End of MOTD
+            char *msgbuf = irc_color_strip_from_mirc(params[count-1]);
+            add_to_buffer(server_buffer, msgbuf);
+            free(msgbuf);
+
+            print_new_messages();
+            break;
         }
         case 403:
         {
@@ -450,11 +468,20 @@ void event_numeric (irc_session_t *session, unsigned int event, const char *orig
         }
         default:
         {
-            char *msgbuf = irc_color_strip_from_mirc(params[count-1]);
-            add_to_buffer(server_buffer, msgbuf);
-            free(msgbuf);
+            char event_message[2048];
+
+            snprintf(event_message, 2048, "%d: %s", event, origin);
+
+            for(int i=0; i<count; i++)
+            {
+                strcat(event_message, " ");
+                strcat(event_message, params[i]);
+            }
+
+            server_buffer->curr = add_to_buffer(server_buffer, event_message);
 
             print_new_messages();
+
             break;
         }
     }
@@ -463,9 +490,17 @@ void event_numeric (irc_session_t *session, unsigned int event, const char *orig
 /* A placeholder function for events we have not implemented */
 void dump_event (irc_session_t *session, const char *event, const char *origin, const char **params, unsigned int count)
 {
-    char *msgbuf = irc_color_strip_from_mirc(params[count-1]);
-    add_to_buffer(server_buffer, msgbuf);
-    free(msgbuf);
+    char event_message[2048];
+    
+    snprintf(event_message, 2048, "%s: %s", event, origin);
+
+    for(int i=0; i<count; i++)
+    {
+        strcat(event_message, " ");
+        strcat(event_message, params[i]);
+    }
+
+    server_buffer->curr = add_to_buffer(server_buffer, event_message);
 
     print_new_messages();
 }
