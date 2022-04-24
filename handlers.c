@@ -283,7 +283,7 @@ void event_channel (irc_session_t *session, const char *event, const char *origi
     char *msgbuf = irc_color_strip_from_mirc(params[1]);
     irc_target_get_nick(origin, nickbuf, sizeof(nickbuf));
     bufptr *message_buffer = channel_buffer(params[0]);
-    snprintf(nick, 128, "\e[36;1m[%s]\e[0m", nickbuf);
+    snprintf(nick, 141, "\e[36;1m[%s]\e[0m", nickbuf);
     if (time_reset())
         message_buffer->nickwidth = strlen(nick);
     else
