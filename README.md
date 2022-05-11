@@ -22,7 +22,10 @@ The control scheme is modeled after SDF's [commode](http://jwodder.freeshell.org
 
 Building requires libircclient:
 
-    apt install libircclient-dev
+    git clone https://michaelShriver/libircclient.git
+    cd libircclient
+    ./configure --enable-shared --enable-ssl
+    make && make install
 
 Clone the source repo and make:
 
@@ -35,7 +38,7 @@ Download and install libircclient locally from source:
 
     git clone https://michaelShriver/libircclient.git
     cd libircclient
-    ./configure --enable-shared --prefix=$HOME/.local --libdir=$HOME/.local/lib
+    ./configure --enable-shared --enable-ssl --prefix=$HOME/.local --libdir=$HOME/.local/lib
     make && make install
 
 Update env variables: (consider adding these to your .profile)
