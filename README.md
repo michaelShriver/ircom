@@ -25,7 +25,7 @@ Building requires libircclient:
     git clone https://michaelShriver/libircclient.git
     cd libircclient
     ./configure --enable-shared --enable-openssl
-    make && make install
+    make && sudo make install
 
 Clone the source repo and make:
 
