@@ -24,7 +24,7 @@ Building requires libircclient:
 
     git clone https://michaelShriver/libircclient.git
     cd libircclient
-    ./configure --enable-shared --enable-ssl
+    ./configure --enable-shared --enable-openssl
     make && make install
 
 Clone the source repo and make:
@@ -38,7 +38,7 @@ Download and install libircclient locally from source:
 
     git clone https://michaelShriver/libircclient.git
     cd libircclient
-    ./configure --enable-shared --enable-ssl --prefix=$HOME/.local --libdir=$HOME/.local/lib
+    ./configure --enable-shared --enable-openssl --prefix=$HOME/.local --libdir=$HOME/.local/lib
     make && make install
 
 Update env variables: (consider adding these to your .profile)
