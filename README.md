@@ -33,9 +33,8 @@ Clone the source repo and make:
 
 Download and install libircclient locally from source:
 
-[https://sourceforge.net/projects/libircclient/](https://sourceforge.net/projects/libircclient/files/libircclient/1.10/libircclient-1.10.tar.gz/download)
-
-    tar xvzf libircclient-1.10.tar.gz && cd libircclient-1.10
+    git clone https://michaelShriver/libircclient.git
+    cd libircclient
     ./configure --enable-shared --prefix=$HOME/.local --libdir=$HOME/.local/lib
     make && make install
 
