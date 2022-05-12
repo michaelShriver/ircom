@@ -11,4 +11,4 @@ clean:
 
 install: ircom
 	install -d $(PREFIX)/bin
-	install -m 644 ircom $(PREFIX)/bin/ircom
+	install -m 755 ircom $(PREFIX)/bin/ircom
