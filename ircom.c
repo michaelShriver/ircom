@@ -1,3 +1,4 @@
+#include "arguments.h"
 #include "handlers.h"
 
 bufptr *server_buffer;
@@ -6,19 +7,45 @@ struct termios termstate;
 struct winsize ttysize;
 bool input_wait = 0;
 time_t nickwidth_set_at;
+int port;
 
 int main(int argc, char **argv)
 {
+    /*
     if ( argc != 4 )
     {
         printf ("Usage: %s <server> <nick> <channel>\n", argv[0]);
         return 1;
     }
+    */
+
+    struct arguments arguments;
+    arguments.port = 0;
+    arguments.nick = NULL;
+    arguments.username = NULL;
+    arguments.realname = NULL;
+    arguments.enable_tls = 0;
+    arguments.noverify = 0;
+
+    argp_parse (&argp, argc, argv, 0, 0, &arguments);
+
+    /* Set Port */
+    if (arguments.port <= 0 || arguments.port > 65535)
+    {
+        port = 6667;
+    }
+    else
+    {
+        port = arguments.port;
+    }
+
+    /* Get OS username */
+    char *OS_USERNAME = getlogin();
 
     /* Initialize callbacks and pointers */
     irc_callbacks_t callbacks;
     irc_session_t *sess;
-    unsigned short port = 6667; // TODO: accept port from command line
+    // unsigned short port = 6667;
     char keycmd;
     pthread_t event_thread;
 
@@ -57,30 +84,80 @@ int main(int argc, char **argv)
 
     /* Create a new IRC session */
     sess = irc_create_session(&callbacks);
-    irc_option_set(sess, LIBIRC_OPTION_SSL_NO_VERIFY);
+    if (arguments.noverify)
+    {
+        irc_option_set(sess, LIBIRC_OPTION_SSL_NO_VERIFY);
+    }
 
     /* check for error */
-    if ( !sess )
+    if (!sess)
     {
         printf ("Could not create session\n");
         exit(1);
     }
 
     /* Initialize buffers */
-    server_buffer = init_buffer(argv[1]);
+    server_buffer = init_buffer(arguments.args[0]);
 
     /* Start output in the server buffer */
     buffer_read_ptr = server_buffer->curr;
 
     /* Initialize my user-defined IRC context, with two buffers */
     irc_ctx_t ctx;
-    memcpy(ctx.nick, argv[2], 128);
-    ctx.active_channel = argv[3];
+    //memcpy(ctx.nick, argv[2], 128);
+
+    if (arguments.nick == NULL)
+    {
+        memcpy(ctx.nick, OS_USERNAME, 128);
+    }
+    else
+    {
+        memcpy(ctx.nick, arguments.nick, 128);
+    }
+
+    if (arguments.username == NULL)
+    {
+        memcpy(ctx.username, OS_USERNAME, 128);
+    }
+    else
+    {
+        memcpy(ctx.username, arguments.username, 128);
+    }
+
+    if (arguments.realname == NULL)
+    {
+        memcpy(ctx.realname, OS_USERNAME, 128);
+    }
+    else
+    {
+        memcpy(ctx.realname, arguments.realname, 128);
+    }
+
+    if (arguments.args[1] == NULL )
+    {
+        ctx.active_channel = server_buffer->channel;
+    }
+    else
+    {
+        ctx.active_channel = arguments.args[1];
+    }
 
     irc_set_ctx(sess, &ctx);
 
+    int serverlen = strlen(arguments.args[0]);
+    char server[serverlen+2];
+
+    if(arguments.enable_tls)
+    {
+        snprintf(server, serverlen+2, "#%s", arguments.args[0]);
+    }
+    else
+    {
+        memcpy(server, arguments.args[0], serverlen+1);
+    }
+
     /* Initiate the IRC server connection */
-    if ( irc_connect (sess, argv[1], port, 0, argv[2], 0, 0) )
+    if (irc_connect(sess, server, port, 0, ctx.nick, ctx.username, ctx.realname))
     {
         printf ("Could not connect: %s\n", irc_strerror (irc_errno(sess)));
         exit(1);
@@ -207,7 +284,14 @@ int main(int argc, char **argv)
             {
                 char *input;
                 input_wait = 1;
-                printf("%-*s ", channel_buffer(ctx.active_channel)->nickwidth-11, ":goto>");
+                //if(ctx.active_channel == NULL)
+                //{
+                    //printf(":goto> ");
+                //}
+                //else
+                //{ 
+                    printf("%-*s ", channel_buffer(ctx.active_channel)->nickwidth-11, ":goto>");
+                //}
                 input = get_input();
                 if (channel_isjoined(input))
                 {

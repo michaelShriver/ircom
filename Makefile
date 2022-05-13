@@ -3,7 +3,7 @@ CFLAGS	= -g
 LIBS	= -lircclient -lpthread -lcrypto -lssl
 PREFIX  = /usr/local
 
-ircom: ircom.c handlers.c functions.c
+ircom: ircom.c handlers.c arguments.c functions.c
 	$(CC) $(CFLAGS) $? $(LDFLAGS) $(LIBS) -o $@
 
 clean:

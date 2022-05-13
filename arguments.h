@@ -1,0 +1,35 @@
+#pragma once
+
+#include <argp.h>
+
+/* Argument Parser */
+extern const char *argp_program_version;
+extern const char *argp_program_bug_address;
+static char doc[] = "ircom IRC Client";
+static char args_doc[] = "server channel";
+
+static struct argp_option options[] =
+{
+    {"port", 'p', "port", 0, "Server port"},
+    {"nick", 'n', "nick", 0, "Desired nickname"},
+    {"username", 'u', "username", 0, "Localhost username"},
+    {"realname", 'r', "real name", 0, "Real name"},
+    {"use-tls", 't', 0, 0, "Enable TLS (Requires libircclient with built-in openssl support)"},
+    {"noverify", 'v', 0, 0, "Do not verify server certificate identity when using TLS"},
+    {0}
+};
+
+struct arguments
+{
+    char *args[2];
+    int port;
+    char *nick;
+    char *username;
+    char *realname;
+    int enable_tls;
+    int noverify;
+};
+
+error_t parse_opt();
+
+static struct argp argp = {options, parse_opt, args_doc, doc};

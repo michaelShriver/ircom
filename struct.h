@@ -44,6 +44,8 @@ typedef struct irc_ctx_t irc_ctx_t;
 struct irc_ctx_t
 {
     char nick[128];
+    char username[128];
+    char realname[128];
     char *active_channel;
     bufptr *buffer_index;
     int buffer_count;

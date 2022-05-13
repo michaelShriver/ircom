@@ -277,7 +277,7 @@ void send_message(irc_session_t *s)
 {
     irc_ctx_t * ctx = irc_get_ctx(s);
     char *input;
-    char nickbuf[128];
+    char nickbuf[141];
     bufptr *message_buffer = channel_buffer(ctx->active_channel);
     int nickwidth_tmp = message_buffer->nickwidth;
     if(message_buffer == server_buffer)
@@ -285,7 +285,7 @@ void send_message(irc_session_t *s)
         printf("<you can't send messages to the server buffer>\n");       
         return;
     }
-    snprintf(nickbuf, 128, "\e[36;1m[%s]\e[0m", ctx->nick);
+    snprintf(nickbuf, 141, "\e[36;1m[%s]\e[0m", ctx->nick);
     if (nickwidth_timer() || strlen(nickbuf) > message_buffer->nickwidth)
     {
         message_buffer->nickwidth = strlen(nickbuf);
@@ -364,8 +364,8 @@ void send_privmsg(irc_session_t *s)
 
 void show_prompt(irc_ctx_t ctx)
 {
-    char nickbuf[128];
-    snprintf(nickbuf, 128, "[%s]", ctx.nick);
+    char nickbuf[130];
+    snprintf(nickbuf, 130, "[%s]", ctx.nick);
     printf("%-*s ", (int)strlen(nickbuf)+2, nickbuf);
 }
 
