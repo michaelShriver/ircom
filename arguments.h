@@ -10,10 +10,10 @@ static char args_doc[] = "server channel";
 
 static struct argp_option options[] =
 {
-    {"port", 'p', "port", 0, "Server port"},
-    {"nick", 'n', "nick", 0, "Desired nickname"},
-    {"username", 'u', "username", 0, "Localhost username"},
-    {"realname", 'r', "real name", 0, "Real name"},
+    {"port", 'p', "port", 0, "Server port. Default: 6667"},
+    {"nick", 'n', "nick", 0, "Desired nickname. Default: computer username"},
+    {"username", 'u', "username", 0, "Username override"},
+    {"realname", 'r', "\"real name\"", 0, "Real name"},
     {"use-tls", 't', 0, 0, "Enable TLS (Requires libircclient with built-in openssl support)"},
     {"noverify", 'v', 0, 0, "Do not verify server certificate identity when using TLS"},
     {0}
