@@ -56,4 +56,7 @@ And then build ircom:
 
 # Execution
 
-    Usage: ircom <server> <nick> <channel>
+    Usage: ircom [-tv?V] [-n nick] [-p port] [-r real name] [-u username]
+            [--nick=nick] [--port=port] [--realname=real name] [--use-tls]
+            [--username=username] [--noverify] [--help] [--usage] [--version]
+            server channel
