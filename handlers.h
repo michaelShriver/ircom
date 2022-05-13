@@ -12,5 +12,6 @@ void event_kick();
 void event_topic();
 void event_connect();
 void event_privmsg();
+void event_notice();
 void event_channel();
 void event_action();

@@ -74,7 +74,7 @@ int main(int argc, char **argv)
     callbacks.event_kick = event_kick;
     callbacks.event_channel = event_channel;
     callbacks.event_privmsg = event_privmsg;
-    callbacks.event_notice = dump_event;
+    callbacks.event_notice = event_notice;
     callbacks.event_invite = dump_event;
     callbacks.event_umode = dump_event;
     callbacks.event_ctcp_rep = dump_event;

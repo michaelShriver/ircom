@@ -326,6 +326,22 @@ void event_privmsg (irc_session_t *session, const char *event, const char *origi
     free(message);
 }
 
+void event_notice (irc_session_t *session, const char *event, const char *origin, const char **params, unsigned int count)
+{
+    char nickbuf[128];
+    char *message = irc_color_strip_from_mirc(params[1]);
+    char timebuf[9];
+    time_t now = time(&now);
+    struct tm *utc = gmtime(&now);
+    strftime(timebuf, 9, "%H:%M:%S", utc);
+
+    irc_target_get_nick (origin, nickbuf, sizeof(nickbuf));
+    while(input_wait == 1)
+        sleep((double).1);
+    printf ("\e[33;1m[%s] NOTICE from %s: %s\e[0m\r\n", timebuf, origin ? nickbuf : "someone", message);
+    free(message);
+}
+
 void event_numeric (irc_session_t *session, unsigned int event, const char *origin, const char **params, unsigned int count)
 {
     switch(event)
