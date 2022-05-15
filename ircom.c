@@ -11,14 +11,6 @@ int port;
 
 int main(int argc, char **argv)
 {
-    /*
-    if ( argc != 4 )
-    {
-        printf ("Usage: %s <server> <nick> <channel>\n", argv[0]);
-        return 1;
-    }
-    */
-
     struct arguments arguments;
     arguments.port = 0;
     arguments.nick = NULL;
@@ -32,7 +24,7 @@ int main(int argc, char **argv)
     /* Set Port */
     if (arguments.port <= 0 || arguments.port > 65535)
     {
-        port = 6667;
+        port = arguments.enable_tls==1 ? 6697 : 6667;
     }
     else
     {
@@ -45,7 +37,6 @@ int main(int argc, char **argv)
     /* Initialize callbacks and pointers */
     irc_callbacks_t callbacks;
     irc_session_t *sess;
-    // unsigned short port = 6667;
     char keycmd;
     pthread_t event_thread;
 
@@ -104,7 +95,6 @@ int main(int argc, char **argv)
 
     /* Initialize my user-defined IRC context, with two buffers */
     irc_ctx_t ctx;
-    //memcpy(ctx.nick, argv[2], 128);
 
     if (arguments.nick == NULL)
     {
