@@ -497,6 +497,7 @@ void peek_channel(irc_session_t *s)
 
 void exit_cleanup()
 {
+    printf("Unlinking TTY ..\r\n");
     clear_all(server_buffer);
     tcsetattr(0, TCSANOW, &termstate);
 }
