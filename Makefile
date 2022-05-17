@@ -7,8 +7,8 @@ OS     := $(shell uname -s)
 HOST   := $(shell hostname)
 ifeq ($(OS),Linux)
     ifeq ($(HOST),ma.sdf.org)
-	    CFLAGS += -I$HOME/.local/include -L$HOME/.local/lib
-        PREFIX  = $HOME/.local
+	    CFLAGS += -I$(HOME)/.local/include -L$(HOME)/.local/lib
+        PREFIX  = $(HOME)/.local
     endif
 endif
 ifeq ($(OS),Darwin)
