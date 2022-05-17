@@ -231,7 +231,7 @@ int nickwidth_timer()
 {
     time_t current_time = time(NULL);
 
-    if (current_time > (nickwidth_set_at + 300))
+    if (current_time > (nickwidth_set_at + 900))
     {
         return 1;
     }    
