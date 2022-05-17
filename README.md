@@ -53,7 +53,7 @@ And then build ircom:
 
     git clone https://github.com/michaelShriver/ircom.git
     cd ircom
-    make 
+    make && make install
 
 # Execution
 
