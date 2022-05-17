@@ -27,6 +27,8 @@ Building requires libircclient:
     ./configure --enable-shared --enable-openssl
     make && sudo make install
 
+On BSD-based systems, including macos, you will need to also install argp-standalone.
+
 Clone the source repo and make:
 
     git clone https://github.com/michaelshriver/ircom
@@ -51,8 +53,7 @@ And then build ircom:
 
     git clone https://github.com/michaelShriver/ircom.git
     cd ircom
-    make CFLAGS="-I$HOME/.local/include -L$HOME/.local/lib"
-    make PREFIX=$HOME/.local install
+    make 
 
 # Execution
 
