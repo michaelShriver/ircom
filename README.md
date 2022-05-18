@@ -13,8 +13,8 @@ The control scheme is modeled after SDF's [commode](https://sdf.org/?tutorials/c
           c - clear                C - issue raw command    d - dump out of ircom
           e - emote                g - goto a room          h - command help
           k - kick a user          l - list open rooms      p - peek into room
-          P - leave current room   q - quit commode         r - room histor
-          R - extended histor      s - send private         w - who is in the room
+          P - leave current room   q - quit commode         r - room history
+          R - extended history     s - send private         w - who is in the room
           < - surf rooms backward  > - surf rooms forward
         
          To begin TALK MODE, press [SPACE]
