@@ -17,7 +17,7 @@ The control scheme is modeled after SDF's [commode](http://jwodder.freeshell.org
           R - extended histor      s - send private         w - who is in the room
           < - surf rooms backward  > - surf rooms forward
         
-         To begin TALK MODE, press [SPACE
+         To begin TALK MODE, press [SPACE]
 
 # Installation
 
