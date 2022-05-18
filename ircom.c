@@ -215,6 +215,18 @@ int main(int argc, char **argv)
                 printf("\e[1;1H\e[2J");
                 break;
             }
+            case 'C':
+            {
+                char *input;
+                input_wait = 1;
+                printf("%-*s ", channel_buffer(ctx.active_channel)->nickwidth-11, ":command>");
+                input = get_input();
+                irc_send_raw(sess, "%s", input);
+                free(input);
+                input_wait = 0;
+                print_new_messages();
+                break;
+            }
             case 'd':
             {
                 input_wait = 1;
@@ -274,14 +286,7 @@ int main(int argc, char **argv)
             {
                 char *input;
                 input_wait = 1;
-                //if(ctx.active_channel == NULL)
-                //{
-                    //printf(":goto> ");
-                //}
-                //else
-                //{ 
-                    printf("%-*s ", channel_buffer(ctx.active_channel)->nickwidth-11, ":goto>");
-                //}
+                printf("%-*s ", channel_buffer(ctx.active_channel)->nickwidth-11, ":goto>");
                 input = get_input();
                 if (channel_isjoined(input))
                 {
@@ -302,13 +307,31 @@ int main(int argc, char **argv)
             case 'h':
             case '?':
             {
-                printf("\nirCOMMODE (c)2023 - Version .27\n\n");
+                printf("\nirCOMMODE (c)2023 - Version .27\n");
 
-                printf("  \e[33;1mc\e[0m - clear                \e[33;1md\e[0m - dump out of ircom    \e[33;1me\e[0m - emote\n");
-                printf("  \e[33;1mg\e[0m - goto a room          \e[33;1mh\e[0m - command help         \e[33;1mk\e[0m - kick a user\n");
-                printf("  \e[33;1ml\e[0m - list open rooms      \e[33;1mp\e[0m - peek into room       \e[33;1mq\e[0m - quit commode\n");
-                printf("  \e[33;1mr\e[0m - room history         \e[33;1mR\e[0m - extended history     \e[33;1ms\e[0m - send private\n");
-                printf("  \e[33;1mw\e[0m - who is in the room   \e[33;1m<\e[0m - surf rooms backward  \e[33;1m>\e[0m - surf rooms forward\n\n");
+                printf("\n  ");
+                printf("%-36s", "\e[33;1mc\e[0m - clear");
+                printf("%-36s", "\e[33;1mC\e[0m - issue raw command");
+                printf("%-36s", "\e[33;1md\e[0m - dump out of ircom");
+                printf("\n  ");
+                printf("%-36s", "\e[33;1me\e[0m - emote");
+                printf("%-36s", "\e[33;1mg\e[0m - goto a room");
+                printf("%-36s", "\e[33;1mh\e[0m - command help");
+                printf("\n  ");
+                printf("%-36s", "\e[33;1mk\e[0m - kick a user");
+                printf("%-36s", "\e[33;1ml\e[0m - list open rooms");
+                printf("%-36s", "\e[33;1mp\e[0m - peek into room");
+                printf("\n  ");
+                printf("%-36s", "\e[33;1mP\e[0m - leave current room");
+                printf("%-36s", "\e[33;1mq\e[0m - quit commode");
+                printf("%-36s", "\e[33;1mr\e[0m - room histor");
+                printf("\n  ");
+                printf("%-36s", "\e[33;1mR\e[0m - extended histor");
+                printf("%-36s", "\e[33;1ms\e[0m - send private");
+                printf("%-36s", "\e[33;1mw\e[0m - who is in the room");
+                printf("\n  ");
+                printf("%-36s", "\e[33;1m<\e[0m - surf rooms backward");
+                printf("%-36s", "\e[33;1m>\e[0m - surf rooms forward\n\n");
 
                 printf("To begin TALK MODE, press [SPACE]\n\n");
 
@@ -328,7 +351,7 @@ int main(int argc, char **argv)
             }
             case 'm':
             {
-                
+                break;    
             }
             case 'p':
             {
