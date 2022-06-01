@@ -420,6 +420,16 @@ void rewind_buffer(bufline *buffer_read_ptr, int lines)
         }
         if (buffer_read_ptr->next != NULL)
             buffer_read_ptr = buffer_read_ptr->next;
+
+        printf("--Beginning-Review--------------------------------------------------------------\r\n");
+        while (buffer_read_ptr->next != NULL)
+        {
+            printf("%s\r\n", buffer_read_ptr->message);
+            buffer_read_ptr = buffer_read_ptr->next;
+        }
+        printf("%s\r\n", buffer_read_ptr->message);
+        printf("--Review-Complete---------------------------------------------------------------\r\n");
+
     }
     else
     {
@@ -429,16 +439,34 @@ void rewind_buffer(bufline *buffer_read_ptr, int lines)
                break; 
             buffer_read_ptr = buffer_read_ptr->prev;
         }
+
+        printf("--Beginning-Review--------------------------------------------------------------\r\n");
+
+        FILE *fp;
+        int fpstatus;
+            
+        fp = popen("more", "w");
+        if (fp == NULL)
+        {
+            printf("Error opening pager\r\n");
+        }
+
+        while (buffer_read_ptr->next != NULL)
+        {
+            fprintf(fp, "%s\r\n", buffer_read_ptr->message);
+            buffer_read_ptr = buffer_read_ptr->next;
+        }
+        fprintf(fp, "%s\r\n", buffer_read_ptr->message);
+
+        fpstatus = pclose(fp);
+        if(fpstatus == -1)
+        {
+            printf("Pipe returned an error\r\n");
+        }
+
+        printf("--Review-Complete---------------------------------------------------------------\r\n");
     }
 
-    printf("--Beginning-Review--------------------------------------------------------------\r\n");
-    while (buffer_read_ptr->next != NULL)
-    {
-        printf("%s\r\n", buffer_read_ptr->message);
-        buffer_read_ptr = buffer_read_ptr->next;
-    }
-    printf("%s\r\n", buffer_read_ptr->message);
-    printf("--Review-Complete---------------------------------------------------------------\r\n");
 }
 
 void print_new_messages()

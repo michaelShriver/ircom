@@ -307,9 +307,9 @@ int main(int argc, char **argv)
             case 'h':
             case '?':
             {
-                printf("\nirCOMMODE (c)2023 - Version .27\n");
-
-                printf("\n  ");
+                printf("\n");
+                printf("irCOMMODE (c)2023 - Version .27");
+                printf("\n\n  ");
                 printf("%-36s", "\e[33;1mc\e[0m - clear");
                 printf("%-36s", "\e[33;1mC\e[0m - issue raw command");
                 printf("%-36s", "\e[33;1md\e[0m - dump out of ircom");
@@ -324,16 +324,17 @@ int main(int argc, char **argv)
                 printf("\n  ");
                 printf("%-36s", "\e[33;1mP\e[0m - leave current room");
                 printf("%-36s", "\e[33;1mq\e[0m - quit commode");
-                printf("%-36s", "\e[33;1mr\e[0m - room histor");
+                printf("%-36s", "\e[33;1mr\e[0m - room history");
                 printf("\n  ");
-                printf("%-36s", "\e[33;1mR\e[0m - extended histor");
+                printf("%-36s", "\e[33;1mR\e[0m - extended history");
                 printf("%-36s", "\e[33;1ms\e[0m - send private");
                 printf("%-36s", "\e[33;1mw\e[0m - who is in the room");
                 printf("\n  ");
                 printf("%-36s", "\e[33;1m<\e[0m - surf rooms backward");
-                printf("%-36s", "\e[33;1m>\e[0m - surf rooms forward\n\n");
-
-                printf("To begin TALK MODE, press [SPACE]\n\n");
+                printf("%-36s", "\e[33;1m>\e[0m - surf rooms forward");
+                printf("\n\n");
+                printf("To begin TALK MODE, press [SPACE]");
+                printf("\n\n");
 
                 break;
             }
