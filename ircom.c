@@ -4,10 +4,13 @@
 bufptr *server_buffer;
 bufline *buffer_read_ptr;
 struct termios termstate;
+struct termios termstate_raw;
 struct winsize ttysize;
 bool input_wait = 0;
+bool output_wait = 0;
 time_t nickwidth_set_at;
 int port;
+FILE *pager;
 
 int main(int argc, char **argv)
 {
@@ -42,7 +45,6 @@ int main(int argc, char **argv)
 
     /* Save terminal state */
     ioctl(0, TIOCGWINSZ, &ttysize);
-    struct termios termstate_raw;
     tcgetattr(0, &termstate);
     memcpy(&termstate_raw, &termstate, sizeof(termstate_raw)); 
 
@@ -345,9 +347,30 @@ int main(int argc, char **argv)
             }
             case 'l':
             {
-                printf("\r\n channel-name   #  modes/topic\r\n");
-                printf("--------------------------------------------------------------------------------\r\n");
+                int fpstatus;
+                int output_timeout = 0;
+
+                output_wait = 1;
+                tcsetattr(0, TCSANOW, &termstate);
+                pager = popen("more", "w");
+                if (pager == NULL)
+                {
+                    printf("Error opening pager\r\n");
+                }
                 irc_cmd_list(sess, NULL);
+                while(output_wait);
+                {
+                    if (output_timeout > 100)
+                        break;
+                    output_timeout++;
+                    sleep(.1);
+                }
+                fpstatus = pclose(pager);
+                if (fpstatus == -1)
+                {
+                    printf("Pipe returned an error\r\n");
+                }
+                tcsetattr(0, TCSANOW, &termstate_raw);
                 break;
             }
             case 'm':

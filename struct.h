@@ -54,6 +54,9 @@ struct irc_ctx_t
 extern bufptr *server_buffer;
 extern bufline *buffer_read_ptr;
 extern struct termios termstate;
+extern struct termios termstate_raw;
 extern struct winsize ttysize;
 extern bool input_wait;
+extern bool output_wait;
 extern time_t nickwidth_set_at;
+extern FILE *pager;

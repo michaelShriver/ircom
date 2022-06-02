@@ -8,7 +8,7 @@ void *irc_event_loop(void *sess)
 
     if (irc_run(s))
     {
-        printf ("Could not connect or I/O error: %s", irc_strerror (irc_errno(sess)));
+        printf ("Could not connect or I/O error: %s\r\n", irc_strerror (irc_errno(sess)));
         exit(1);
     }
 
@@ -358,10 +358,21 @@ void event_numeric (irc_session_t *session, unsigned int event, const char *orig
             print_new_messages();
             break;
         }
+        case 321:
+        {
+            fprintf(pager, "\r\n        channel-name   #  modes/topic\r\n");
+            fprintf(pager, "--------------------------------------------------------------------------------\r\n");
+            break;
+        }
         case 322:
         {
-           printf("%20s %3s  %s\r\n", params[1], params[2], params[3]); 
+           fprintf(pager, "%20s %3s  %s\r\n", params[1], params[2], params[3]); 
            break;
+        }
+        case 323:
+        {
+            output_wait = 0;
+            break;
         }
         case 332:
         {

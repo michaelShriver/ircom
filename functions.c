@@ -442,24 +442,23 @@ void rewind_buffer(bufline *buffer_read_ptr, int lines)
 
         printf("--Beginning-Review--------------------------------------------------------------\r\n");
 
-        FILE *fp;
         int fpstatus;
             
-        fp = popen("more", "w");
-        if (fp == NULL)
+        pager = popen("more", "w");
+        if (pager == NULL)
         {
             printf("Error opening pager\r\n");
         }
 
         while (buffer_read_ptr->next != NULL)
         {
-            fprintf(fp, "%s\r\n", buffer_read_ptr->message);
+            fprintf(pager, "%s\r\n", buffer_read_ptr->message);
             buffer_read_ptr = buffer_read_ptr->next;
         }
-        fprintf(fp, "%s\r\n", buffer_read_ptr->message);
+        fprintf(pager, "%s\r\n", buffer_read_ptr->message);
 
-        fpstatus = pclose(fp);
-        if(fpstatus == -1)
+        fpstatus = pclose(pager);
+        if (fpstatus == -1)
         {
             printf("Pipe returned an error\r\n");
         }
