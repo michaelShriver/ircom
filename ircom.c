@@ -350,7 +350,7 @@ int main(int argc, char **argv)
                 int fpstatus;
                 int output_timeout = 0;
 
-                input_wait=1
+                input_wait=1;
                 output_wait = 1;
                 tcsetattr(0, TCSANOW, &termstate);
                 pager = popen("more", "w");
