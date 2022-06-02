@@ -8,7 +8,7 @@ HOST   := $(shell hostname)
 DOMAIN := $(shell domainname)
 ifeq ($(OS),Linux)
 	ifeq ($(HOST),ma.sdf.org)
-	    CFLAGS += -I$(HOME)/.local/include -L$(HOME)/.local/lib
+		CFLAGS += -I$(HOME)/.local/include -L$(HOME)/.local/lib
 		PREFIX  = $(HOME)/.local
 	endif
 endif
