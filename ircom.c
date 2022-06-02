@@ -350,8 +350,8 @@ int main(int argc, char **argv)
                 int fpstatus;
                 int output_timeout = 0;
 
-                input_wait=1;
                 output_wait = 1;
+                tcsetattr(0, TCSANOW, &termstate);
                 pager = popen("more", "w");
                 if (pager == NULL)
                 {
@@ -365,14 +365,12 @@ int main(int argc, char **argv)
                     output_timeout++;
                     sleep(.1);
                 }
-                tcsetattr(0, TCSANOW, &termstate);
                 fpstatus = pclose(pager);
                 if (fpstatus == -1)
                 {
                     printf("Pipe returned an error\r\n");
                 }
                 tcsetattr(0, TCSANOW, &termstate_raw);
-                input_wait = 0;
                 break;
             }
             case 'm':
