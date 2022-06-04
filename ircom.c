@@ -30,9 +30,30 @@ int main(int argc, char **argv)
     char keycmd;
     pthread_t event_thread;
 
+<<<<<<< HEAD
     /* Zero out memory allocation for callbacks struct */
     memset (&callbacks, 0, sizeof(callbacks));
 
+=======
+    /* Initialize user-defined IRC context, with two buffers */
+    irc_ctx_t ctx;
+    irc_set_ctx(sess, &ctx);
+
+    /* Save terminal state */
+    ioctl(0, TIOCGWINSZ, &ctx.ttysize);
+    tcgetattr(0, &ctx.termstate);
+    memcpy(&ctx.termstate_raw, &ctx.termstate, sizeof(ctx.termstate_raw)); 
+
+    /* On exit, clean up memory and reset terminal state */
+    atexit(exit_cleanup);
+
+    /* Zero out memory allocation for callbacks struct */
+    memset (&callbacks, 0, sizeof(callbacks));
+
+    /* Set initial nickwidth timestamp */
+    ctx.nickwidth_set_at = time(NULL);
+
+>>>>>>> e0f5698d6ee073ebb81705d7df7e3954c53634ce
     callbacks.event_connect = event_connect;
     callbacks.event_join = event_join;
     callbacks.event_nick = dump_event;
