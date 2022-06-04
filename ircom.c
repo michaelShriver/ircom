@@ -24,11 +24,14 @@ int main(int argc, char **argv)
     arguments.enable_tls = 0;
     arguments.noverify = 0;
 
-    char keycmd;
-    pthread_t event_thread;
+    /* Parse command line arguments */
+    argp_parse (&argp, argc, argv, 0, 0, &arguments);
 
     /* Initialize callbacks */
     irc_callbacks_t callbacks;
+    irc_session_t *sess;
+    char keycmd;
+    pthread_t event_thread;
 
     /* Zero out memory allocation for callbacks struct */
     memset (&callbacks, 0, sizeof(callbacks));
@@ -52,7 +55,7 @@ int main(int argc, char **argv)
     callbacks.event_numeric = event_numeric;
 
     /* Create a new IRC session */
-    irc_session_t *sess = irc_create_session(&callbacks);
+    sess = irc_create_session(&callbacks);
 
     /* check for error */
     if (!sess)
@@ -84,9 +87,6 @@ int main(int argc, char **argv)
 
     /* Start output in the server buffer */
     ctx.buffer_read_ptr = ctx.server_buffer->curr;
-
-    /* Process command line arguments */
-    argp_parse (&argp, argc, argv, 0, 0, &arguments);
 
     if (arguments.noverify)
     {
