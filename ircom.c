@@ -1,5 +1,6 @@
 #include "handlers.h"
 
+/*
 bufptr *server_buffer;
 bufline *buffer_read_ptr;
 struct termios termstate;
@@ -11,10 +12,10 @@ time_t nickwidth_set_at;
 int port;
 FILE *pager;
 int errno;
+*/
 
 int main(int argc, char **argv)
 {
-    errno = 0;
     struct arguments arguments;
     arguments.port = 0;
     arguments.nick = NULL;
@@ -23,40 +24,14 @@ int main(int argc, char **argv)
     arguments.enable_tls = 0;
     arguments.noverify = 0;
 
-    argp_parse (&argp, argc, argv, 0, 0, &arguments);
-
-    /* Set Port */
-    if (arguments.port <= 0 || arguments.port > 65535)
-    {
-        port = arguments.enable_tls==1 ? 6697 : 6667;
-    }
-    else
-    {
-        port = arguments.port;
-    }
-
-    /* Get OS username */
-    char *OS_USERNAME = getlogin();
-
     /* Initialize callbacks and pointers */
     irc_callbacks_t callbacks;
     irc_session_t *sess;
     char keycmd;
     pthread_t event_thread;
 
-    /* Save terminal state */
-    ioctl(0, TIOCGWINSZ, &ttysize);
-    tcgetattr(0, &termstate);
-    memcpy(&termstate_raw, &termstate, sizeof(termstate_raw)); 
-
-    /* On exit, clean up memory and reset terminal state */
-    atexit(exit_cleanup);
-
     /* Zero out memory allocation for callbacks struct */
     memset (&callbacks, 0, sizeof(callbacks));
-
-    /* Set initial nickwidth timestamp */
-    nickwidth_set_at = time(NULL);
 
     callbacks.event_connect = event_connect;
     callbacks.event_join = event_join;
@@ -90,14 +65,42 @@ int main(int argc, char **argv)
         exit(1);
     }
 
+    /* Initialize user-defined IRC context, with two buffers */
+    irc_ctx_t ctx;
+    irc_set_ctx(sess, &ctx);
+
+    /* Save terminal state */
+    ioctl(0, TIOCGWINSZ, &ctx.ttysize);
+    tcgetattr(0, &ctx.termstate);
+    memcpy(&ctx.termstate_raw, &ctx.termstate, sizeof(ctx.termstate_raw)); 
+ 
+    /* Set initial nickwidth timestamp */
+    ctx.nickwidth_set_at = time(NULL);
+ 
+    /* On exit, clean up memory and reset terminal state */
+    atexit(exit_cleanup);
+
     /* Initialize buffers */
-    server_buffer = init_buffer(arguments.args[0]);
+    ctx.server_buffer = init_buffer(sess, arguments.args[0]);
 
     /* Start output in the server buffer */
-    buffer_read_ptr = server_buffer->curr;
+    ctx.buffer_read_ptr = ctx.server_buffer->curr;
 
-    /* Initialize my user-defined IRC context, with two buffers */
-    irc_ctx_t ctx;
+    /* Process command line arguments */
+    argp_parse (&argp, argc, argv, 0, 0, &arguments);
+
+    /* Set Port */
+    if (arguments.port <= 0 || arguments.port > 65535)
+    {
+        ctx.port = arguments.enable_tls==1 ? 6697 : 6667;
+    }
+    else
+    {
+        ctx.port = arguments.port;
+    }
+
+    /* Get OS username */
+    char *OS_USERNAME = getlogin();
 
     if (arguments.nick == NULL)
     {
@@ -128,14 +131,12 @@ int main(int argc, char **argv)
 
     if (arguments.args[1] == NULL )
     {
-        ctx.active_channel = server_buffer->channel;
+        ctx.active_channel = ctx.server_buffer->channel;
     }
     else
     {
         ctx.active_channel = arguments.args[1];
     }
-
-    irc_set_ctx(sess, &ctx);
 
     int serverlen = strlen(arguments.args[0]);
     char server[serverlen+2];
@@ -150,7 +151,7 @@ int main(int argc, char **argv)
     }
 
     /* Initiate the IRC server connection */
-    if (irc_connect(sess, server, port, 0, ctx.nick, ctx.username, ctx.realname))
+    if (irc_connect(sess, server, ctx.port, 0, ctx.nick, ctx.username, ctx.realname))
     {
         fprintf (stderr, "Could not connect: %s\n", irc_strerror (irc_errno(sess)));
         exit(1);
@@ -165,27 +166,27 @@ int main(int argc, char **argv)
     }
 
     /* Set termstate to raw */
-    cfmakeraw(&termstate_raw);
+    cfmakeraw(&ctx.termstate_raw);
 
     /* Wait for the message buffer to be initialized with valid data */
-    while (buffer_read_ptr->message == NULL)
+    while (ctx.buffer_read_ptr->message == NULL)
     {
         sleep(1);
     }
 
     while (1)
     {
-        tcsetattr(0, TCSANOW, &termstate_raw);
+        tcsetattr(0, TCSANOW, &ctx.termstate_raw);
         char stroke = getchar();
-        tcsetattr(0, TCSANOW, &termstate);
+        tcsetattr(0, TCSANOW, &ctx.termstate);
 
         switch(stroke)
         {
             case '<':
             {
                 ctx.active_channel = channel_buffer(ctx.active_channel)->prevbuf->channel;
-                buffer_read_ptr = channel_buffer(ctx.active_channel)->curr;
-                if(channel_buffer(ctx.active_channel) == server_buffer)
+                ctx.buffer_read_ptr = channel_buffer(ctx.active_channel)->curr;
+                if(channel_buffer(ctx.active_channel) == ctx.server_buffer)
                 {
                     printf("[server messages]\n\n");
                 }
@@ -200,14 +201,14 @@ int main(int argc, char **argv)
             {
                 if (channel_buffer(ctx.active_channel)->nextbuf == NULL)
                 {
-                    ctx.active_channel = server_buffer->channel;
-                    buffer_read_ptr = server_buffer->curr;
+                    ctx.active_channel = ctx.server_buffer->channel;
+                    ctx.buffer_read_ptr = ctx.server_buffer->curr;
                     printf("[server messages]\n\n");
                 }
                 else
                 {
                     ctx.active_channel = channel_buffer(ctx.active_channel)->nextbuf->channel;
-                    buffer_read_ptr = channel_buffer(ctx.active_channel)->curr;
+                    ctx.buffer_read_ptr = channel_buffer(ctx.active_channel)->curr;
                     reset_nicklist(ctx.active_channel);
                     irc_cmd_names(sess, ctx.active_channel);
                 }
@@ -221,22 +222,22 @@ int main(int argc, char **argv)
             case 'C':
             {
                 char *input;
-                input_wait = 1;
+                ctx.input_wait = 1;
                 printf("%-*s ", channel_buffer(ctx.active_channel)->nickwidth-11, ":command>");
                 input = get_input();
                 irc_send_raw(sess, "%s", input);
                 free(input);
-                input_wait = 0;
+                ctx.input_wait = 0;
                 print_new_messages();
                 break;
             }
             case 'd':
             {
-                input_wait = 1;
+                ctx.input_wait = 1;
                 printf("Do you really want to take a dump of %s? (y/n) ", ctx.active_channel);
-                tcsetattr(0, TCSANOW, &termstate_raw);
+                tcsetattr(0, TCSANOW, &ctx.termstate_raw);
                 char ans = getchar();
-                tcsetattr(0, TCSANOW, &termstate);
+                tcsetattr(0, TCSANOW, &ctx.termstate);
 
                 switch(ans)
                 {
@@ -273,29 +274,29 @@ int main(int argc, char **argv)
                     }
                 }
 
-                input_wait = 0;
+                ctx.input_wait = 0;
                 print_new_messages();
                 break;
             }
             case 'e':
             {
-                input_wait = 1;
+                ctx.input_wait = 1;
                 send_action(sess);
-                input_wait = 0;
+                ctx.input_wait = 0;
                 print_new_messages();
                 break;
             }
             case 'g':
             {
                 char *input;
-                input_wait = 1;
+                ctx.input_wait = 1;
                 printf("%-*s ", channel_buffer(ctx.active_channel)->nickwidth-11, ":goto>");
                 input = get_input();
                 if (channel_isjoined(input))
                 {
                     bufptr *chanbuf = channel_buffer(input);
                     ctx.active_channel = chanbuf->channel;
-                    buffer_read_ptr = chanbuf->curr;
+                    ctx.buffer_read_ptr = chanbuf->curr;
                     irc_cmd_names(sess, ctx.active_channel);
                 }
                 else
@@ -303,7 +304,7 @@ int main(int argc, char **argv)
                     irc_cmd_join(sess, input, 0);
                 }
                 free(input);
-                input_wait = 0;
+                ctx.input_wait = 0;
                 print_new_messages();
                 break;
             }
@@ -351,27 +352,27 @@ int main(int argc, char **argv)
                 int fpstatus;
                 int output_timeout = 0;
 
-                output_wait = 1;
-                pager = popen("more", "w");
-                if (pager == NULL)
+                ctx.output_wait = 1;
+                ctx.pager = popen("more", "w");
+                if (ctx.pager == NULL)
                 {
                     fprintf(stderr, "Error opening pager\r\n");
                 }
                 irc_cmd_list(sess, NULL);
-                while(output_wait);
+                while(ctx.output_wait)
                 {
                     if (output_timeout > 100)
                         break;
                     output_timeout++;
                     sleep(.1);
                 }
-                tcsetattr(0, TCSANOW, &termstate);
-                fpstatus = pclose(pager);
+                tcsetattr(0, TCSANOW, &ctx.termstate);
+                fpstatus = pclose(ctx.pager);
                 if (fpstatus == -1)
                 {
                     fprintf(stderr, "Pipe returned an error\r\n");
                 }
-                tcsetattr(0, TCSANOW, &termstate_raw);
+                tcsetattr(0, TCSANOW, &ctx.termstate_raw);
                 break;
             }
             case 'm':
@@ -380,15 +381,15 @@ int main(int argc, char **argv)
             }
             case 'p':
             {
-                input_wait = 1;
+                ctx.input_wait = 1;
                 peek_channel(sess);
-                input_wait = 0;
+                ctx.input_wait = 0;
                 print_new_messages();
                 break;
             }
             case 'P':
             {
-                if(strcmp(server_buffer->channel, ctx.active_channel) == 0)
+                if(strcmp(ctx.server_buffer->channel, ctx.active_channel) == 0)
                     printf("<no channel is active>\r\n");
                 else
                     irc_cmd_part(sess, ctx.active_channel);
@@ -401,28 +402,28 @@ int main(int argc, char **argv)
             }
             case 'r':
             {
-                rewind_buffer(buffer_read_ptr, -1);
+                rewind_buffer(ctx.buffer_read_ptr, -1);
                 break;
             }
             case 'R':
             {
                 char *input;
                 int lines;
-                input_wait = 1;
+                ctx.input_wait = 1;
                 printf("%-*s ", channel_buffer(ctx.active_channel)->nickwidth-11, ":lines>");
                 input = get_input();
                 sscanf(input, "%d", &lines);
                 free(input);
-                rewind_buffer(buffer_read_ptr, lines);
-                input_wait = 0;
+                rewind_buffer(ctx.buffer_read_ptr, lines);
+                ctx.input_wait = 0;
                 print_new_messages();
                 break;
             }
             case 's':
             {
-                input_wait = 1;
+                ctx.input_wait = 1;
                 send_privmsg(sess);
-                input_wait = 0;
+                ctx.input_wait = 0;
                 print_new_messages();
                 break;
             }
@@ -436,9 +437,9 @@ int main(int argc, char **argv)
             case '\r':
             case ' ':
             {
-                input_wait = 1;
+                ctx.input_wait = 1;
                 send_message(sess);
-                input_wait = 0;
+                ctx.input_wait = 0;
                 print_new_messages();
                 break;
             }

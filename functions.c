@@ -1,7 +1,8 @@
 #include "functions.h"
 
-bufptr *init_buffer(char *channel)
+bufptr *init_buffer(irc_session_t *s, char *channel)
 {
+    irc_ctx_t * ctx = irc_get_ctx(s);
     size_t chanlen = (sizeof(*channel) * (strlen(channel) + 1));
     char *bufchan = malloc(chanlen);
     memcpy(bufchan, channel, chanlen);
@@ -20,8 +21,8 @@ bufptr *init_buffer(char *channel)
     channel_buffer->curr->isread = NULL;
     channel_buffer->prevbuf = NULL;
     channel_buffer->nextbuf = NULL;
-    if (server_buffer != NULL)
-        server_buffer->prevbuf = channel_buffer;
+    if (ctx->server_buffer != NULL)
+        ctx->server_buffer->prevbuf = channel_buffer;
 
     return channel_buffer;
 }
@@ -37,9 +38,10 @@ nickname *init_nickentry()
 }
 
 /* Return a pointer for a specified channel's buffer, init a new buffer if needed */
-bufptr *channel_buffer(char *channel)
+bufptr *channel_buffer(irc_session_t *s, char *channel)
 {
-    bufptr *search_ptr = server_buffer;
+    irc_ctx_t * ctx = irc_get_ctx(s);
+    bufptr *search_ptr = ctx->server_buffer;
 
     if(strcmp(search_ptr->channel, channel) == 0)
         return search_ptr;
@@ -52,16 +54,17 @@ bufptr *channel_buffer(char *channel)
         search_ptr = search_ptr->nextbuf;
     }
 
-    bufptr *newbuf = init_buffer(channel);
+    bufptr *newbuf = init_buffer(s, channel);
     newbuf->prevbuf = search_ptr;
     search_ptr->nextbuf = newbuf;
 
     return search_ptr->nextbuf;
 }
 
-int channel_isjoined(char *channel)
+int channel_isjoined(irc_session_t *s, char *channel)
 {
-    bufptr *search_ptr = server_buffer;
+    irc_ctx_t * ctx = irc_get_ctx(s);
+    bufptr *search_ptr = ctx->server_buffer;
 
     while (search_ptr->nextbuf != NULL)
     {
@@ -74,9 +77,9 @@ int channel_isjoined(char *channel)
     return 0;
 }
 
-int nick_is_member(char *channel, char *nick)
+int nick_is_member(irc_session_t *s, char *channel, char *nick)
 {
-    nickname *search_ptr = channel_buffer(channel)->nicklist;
+    nickname *search_ptr = channel_buffer(s, channel)->nicklist;
     char modeset[] = "~&@%+";
 
     if(search_ptr == NULL)
@@ -104,19 +107,20 @@ int nick_is_member(char *channel, char *nick)
     return 0;
 }
 
-int add_member(char *channel, char *nick)
+int add_member(irc_session_t *s, char *channel, char *nick)
 {
-    if(!channel_isjoined(channel))
+    irc_ctx_t * ctx = irc_get_ctx(s);
+    if(!channel_isjoined(s,channel))
     {
         char errmsg[256];
         snprintf(errmsg, 256, "<cannot add %s to nonexistant channel \'%s\'.>", nick, channel);
-        server_buffer->curr = add_to_buffer(server_buffer, errmsg);
+        ctx->server_buffer->curr = add_to_buffer(ctx->server_buffer, errmsg);
 
-        print_new_messages();
+        print_new_messages(s);
         return -1;
     }
 
-    bufptr *chanbuf = channel_buffer(channel);
+    bufptr *chanbuf = channel_buffer(s, channel);
     nickname *search_ptr = chanbuf->nicklist;
     size_t nicklen = (sizeof(char) * (strlen(nick) + 1));
     char mode = '\0';
@@ -169,19 +173,20 @@ int add_member(char *channel, char *nick)
     return 1;
 }
 
-int delete_member(char *channel, char *nick)
+int delete_member(irc_session_t *s, char *channel, char *nick)
 {
-    if(!channel_isjoined(channel))
+    irc_ctx_t * ctx = irc_get_ctx(s);
+    if(!channel_isjoined(s, channel))
     {
         char errmsg[256];
         snprintf(errmsg, 256, "<cannot remove %s from nonexistant channel \'%s\'.>", nick, channel);
-        server_buffer->curr = add_to_buffer(server_buffer, errmsg);
+        ctx->server_buffer->curr = add_to_buffer(ctx->server_buffer, errmsg);
 
-        print_new_messages();
+        print_new_messages(s);
         return -1;
     }
 
-    bufptr *chanbuf = channel_buffer(channel);
+    bufptr *chanbuf = channel_buffer(s, channel);
     nickname *search_ptr = chanbuf->nicklist;
     char mode = '\0';
     char modeset[] = "~&@%+";
@@ -227,11 +232,12 @@ int delete_member(char *channel, char *nick)
     return 0;
 }
 
-int nickwidth_timer()
+int nickwidth_timer(irc_session_t *s)
 {
+    irc_ctx_t * ctx = irc_get_ctx(s);
     time_t current_time = time(NULL);
 
-    if (current_time > (nickwidth_set_at + 900))
+    if (current_time > (ctx->nickwidth_set_at + 900))
     {
         return 1;
     }    
@@ -278,18 +284,18 @@ void send_message(irc_session_t *s)
     irc_ctx_t * ctx = irc_get_ctx(s);
     char *input;
     char nickbuf[141];
-    bufptr *message_buffer = channel_buffer(ctx->active_channel);
+    bufptr *message_buffer = channel_buffer(s, ctx->active_channel);
     int nickwidth_tmp = message_buffer->nickwidth;
-    if(message_buffer == server_buffer)
+    if(message_buffer == ctx->server_buffer)
     {
         printf("<press 'g' to go to channel>\n");       
         return;
     }
     snprintf(nickbuf, 141, "\e[36;1m[%s]\e[0m", ctx->nick);
-    if (nickwidth_timer() || strlen(nickbuf) > message_buffer->nickwidth)
+    if (nickwidth_timer(s) || strlen(nickbuf) > message_buffer->nickwidth)
     {
         message_buffer->nickwidth = strlen(nickbuf);
-        nickwidth_set_at = time(NULL);
+        ctx->nickwidth_set_at = time(NULL);
     }
 
     printf("%-*s ", message_buffer->nickwidth, nickbuf);
@@ -319,7 +325,7 @@ void send_action(irc_session_t *s)
 {
     char *action;
     irc_ctx_t *ctx = irc_get_ctx(s);
-    bufptr *message_buffer = channel_buffer(ctx->active_channel);
+    bufptr *message_buffer = channel_buffer(s, ctx->active_channel);
 
     printf("%-*s ", message_buffer->nickwidth-11, ":emote>");
     action = get_input();
@@ -345,7 +351,7 @@ void send_privmsg(irc_session_t *s)
     irc_ctx_t *ctx = irc_get_ctx(s);
     char *message;
     char *recipient;
-    bufptr *active_channel = channel_buffer(ctx->active_channel);
+    bufptr *active_channel = channel_buffer(s, ctx->active_channel);
     
     printf("Provide a RECIPIENT\n");
     printf("%-*s ", active_channel->nickwidth-11, ":to>");
@@ -372,7 +378,7 @@ void show_prompt(irc_ctx_t ctx)
 void kick_user(irc_session_t *s)
 {
     irc_ctx_t *ctx = irc_get_ctx(s);
-    bufptr *active_channel = channel_buffer(ctx->active_channel);
+    bufptr *active_channel = channel_buffer(s, ctx->active_channel);
 
     printf("%-*s ", active_channel->nickwidth-11, ":kick>");
     char *user = get_input();
@@ -404,18 +410,19 @@ char * get_input()
     return input;
 }
 
-void rewind_buffer(bufline *buffer_read_ptr, int lines)
+void rewind_buffer(irc_session_t *s, bufline *buffer_read_ptr, int lines)
 {
-    ioctl(0, TIOCGWINSZ, &ttysize);
+    irc_ctx_t * ctx = irc_get_ctx(s);
+    ioctl(0, TIOCGWINSZ, &ctx->ttysize);
                                    
     if (lines <= 0)
     {
         lines = 0;
-        while(lines < (ttysize.ws_row - 4))
+        while(lines < (ctx->ttysize.ws_row - 4))
         {
             if (buffer_read_ptr->prev == NULL)
                 break; 
-            lines = lines + (((strlen(buffer_read_ptr->message)) / ttysize.ws_col) + 1);
+            lines = lines + (((strlen(buffer_read_ptr->message)) / ctx->ttysize.ws_col) + 1);
             buffer_read_ptr = buffer_read_ptr->prev;
         }
         if (buffer_read_ptr->next != NULL)
@@ -444,20 +451,20 @@ void rewind_buffer(bufline *buffer_read_ptr, int lines)
 
         int fpstatus;
             
-        pager = popen("more", "w");
-        if (pager == NULL)
+        ctx->pager = popen("more", "w");
+        if (ctx->pager == NULL)
         {
             fprintf(stderr, "Error opening pager\r\n");
         }
 
         while (buffer_read_ptr->next != NULL)
         {
-            fprintf(pager, "%s\r\n", buffer_read_ptr->message);
+            fprintf(ctx->pager, "%s\r\n", buffer_read_ptr->message);
             buffer_read_ptr = buffer_read_ptr->next;
         }
-        fprintf(pager, "%s\r\n", buffer_read_ptr->message);
+        fprintf(ctx->pager, "%s\r\n", buffer_read_ptr->message);
 
-        fpstatus = pclose(pager);
+        fpstatus = pclose(ctx->pager);
         if (fpstatus == -1)
         {
             fprintf(stderr, "Pipe returned an error\r\n");
@@ -468,29 +475,30 @@ void rewind_buffer(bufline *buffer_read_ptr, int lines)
 
 }
 
-void print_new_messages()
+void print_new_messages(irc_session_t *s)
 {
-    if (input_wait == 0)
+    irc_ctx_t * ctx = irc_get_ctx(s);
+    if (ctx->input_wait == 0)
     {
         /* Walk the message buffer, and write messages to the terminal */
-        while (buffer_read_ptr->next != NULL)
+        while (ctx->buffer_read_ptr->next != NULL)
         {
-            if (buffer_read_ptr->isread == 0 && buffer_read_ptr->message != NULL)
+            if (ctx->buffer_read_ptr->isread == 0 && ctx->buffer_read_ptr->message != NULL)
             {
-                buffer_read_ptr->isread = 1;
-                printf("%s\r\n", buffer_read_ptr->message);
+                ctx->buffer_read_ptr->isread = 1;
+                printf("%s\r\n", ctx->buffer_read_ptr->message);
             }
     
-            if (buffer_read_ptr->next != NULL)
+            if (ctx->buffer_read_ptr->next != NULL)
             {
-                buffer_read_ptr = buffer_read_ptr->next;
+                ctx->buffer_read_ptr = ctx->buffer_read_ptr->next;
             }
         }
 
-        if (buffer_read_ptr->isread == 0 && buffer_read_ptr->message != NULL)
+        if (ctx->buffer_read_ptr->isread == 0 && ctx->buffer_read_ptr->message != NULL)
         {
-            buffer_read_ptr->isread = 1;
-            printf("%s\r\n", buffer_read_ptr->message);
+            ctx->buffer_read_ptr->isread = 1;
+            printf("%s\r\n", ctx->buffer_read_ptr->message);
         }
     }
 }
@@ -498,9 +506,9 @@ void print_new_messages()
 void peek_channel(irc_session_t *s)
 {
     irc_ctx_t *ctx = irc_get_ctx(s);
-    bufptr *search_ptr = server_buffer;
+    bufptr *search_ptr = ctx->server_buffer;
     char *channel;
-    bufptr *active_channel = channel_buffer(ctx->active_channel);
+    bufptr *active_channel = channel_buffer(s, ctx->active_channel);
 
     printf("%-*s ", active_channel->nickwidth-11, ":peek>");
     channel = get_input();
@@ -509,7 +517,7 @@ void peek_channel(irc_session_t *s)
     {
         if(strcmp(search_ptr->nextbuf->channel, channel) == 0)
         {
-            rewind_buffer(search_ptr->nextbuf->curr, -1);
+            rewind_buffer(s, search_ptr->nextbuf->curr, -1);
             return;
         }
 
@@ -522,16 +530,18 @@ void peek_channel(irc_session_t *s)
     return;
 }
 
-void exit_cleanup()
+void exit_cleanup(irc_session_t *s)
 {
+    irc_ctx_t * ctx = irc_get_ctx(s);
     printf("Unlinking TTY ..\r\n");
-    clear_all(server_buffer);
-    tcsetattr(0, TCSANOW, &termstate);
+    clear_all(ctx->server_buffer);
+    tcsetattr(0, TCSANOW, &ctx->termstate);
 }
 
-void reset_nicklist(char *channel)
+void reset_nicklist(irc_session_t *s, char *channel)
 {
-    bufptr *message_buffer = channel_buffer(channel);
+    irc_ctx_t * ctx = irc_get_ctx(s);
+    bufptr *message_buffer = channel_buffer(s, channel);
 
     clear_nicklist(message_buffer->nicklist);
     message_buffer->nicklist = NULL;
@@ -564,16 +574,17 @@ void clear_msglist(bufline *message)
     free(message);
 }
 
-void clear_buffer(bufptr *buffer)
+void clear_buffer(irc_session_t *s, bufptr *buffer)
 {
-    if (buffer != server_buffer)
+    irc_ctx_t * ctx = irc_get_ctx(s);
+    if (buffer != ctx->server_buffer)
     {
         buffer->prevbuf->nextbuf = buffer->nextbuf;
         if (buffer->nextbuf != NULL)
             buffer->nextbuf->prevbuf = buffer->prevbuf;
     }
     else if (buffer->nextbuf == NULL)
-        server_buffer->prevbuf = buffer->prevbuf;
+        ctx->server_buffer->prevbuf = buffer->prevbuf;
     
     clear_msglist(buffer->head);
     clear_nicklist(buffer->nicklist);
