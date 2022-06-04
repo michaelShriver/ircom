@@ -6,6 +6,7 @@ PREFIX  = /usr/local
 OS     := $(shell uname -s)
 HOST   := $(shell hostname)
 DOMAIN := $(shell domainname)
+
 ifeq ($(OS),Linux)
 	ifeq ($(HOST),ma.sdf.org)
 		CFLAGS += -I$(HOME)/.local/include -L$(HOME)/.local/lib
@@ -13,23 +14,24 @@ ifeq ($(OS),Linux)
 	endif
 endif
 ifeq ($(OS),Darwin)
-	LIBS += -largp
+	CFLAGS += -L/opt/homebrew/lib -I/opt/homebrew/include
+	LIBS   += -largp
 endif
 ifeq ($(OS),FreeBSD)
-	LIBS += -largp
+	LIBS   += -largp
 endif
 ifeq ($(OS),NetBSD)
 	ifeq ($(DOMAIN),SDF)
 		CFLAGS += -I$(HOME)/.local/include -L$(HOME)/.local/lib
 		PREFIX  = $(HOME)/.local
 	endif
-	LIBS += -largp
+	LIBS   += -largp
 endif
 ifeq ($(OS),OpenBSD)
-	LIBS += -largp
+	LIBS   += -largp
 endif
 ifeq ($(OS),UNIX)
-	LIBS += -largp
+	LIBS   += -largp
 endif
 
 ircom: ircom.c arguments.c handlers.c functions.c

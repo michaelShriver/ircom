@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdio.h>
 #include <stdbool.h>
 #include <termios.h>
 #include <sys/ioctl.h>
@@ -46,11 +47,21 @@ struct irc_ctx_t
     char nick[128];
     char username[128];
     char realname[128];
+    int port;
     char *active_channel;
-    bufptr *buffer_index;
     int buffer_count;
+    bufptr *server_buffer;
+    bufline *buffer_read_ptr;
+    struct termios termstate;
+    struct termios termstate_raw;
+    struct winsize ttysize;
+    bool input_wait;
+    bool output_wait;
+    time_t nickwidth_set_at;
+    FILE *pager;
 };
 
+/*
 extern bufptr *server_buffer;
 extern bufline *buffer_read_ptr;
 extern struct termios termstate;
@@ -61,3 +72,4 @@ extern bool output_wait;
 extern time_t nickwidth_set_at;
 extern FILE *pager;
 extern int errno;
+*/
