@@ -16,6 +16,7 @@ int errno;
 
 int main(int argc, char **argv)
 {
+    errno = 0;
     struct arguments arguments;
     arguments.port = 0;
     arguments.nick = NULL;
@@ -29,9 +30,6 @@ int main(int argc, char **argv)
     irc_session_t *sess;
     char keycmd;
     pthread_t event_thread;
-
-    /* Zero out memory allocation for callbacks struct */
-    memset (&callbacks, 0, sizeof(callbacks));
 
     /* Initialize user-defined IRC context, with two buffers */
     irc_ctx_t ctx;
@@ -82,21 +80,6 @@ int main(int argc, char **argv)
         fprintf (stderr, "Could not create session\n");
         exit(1);
     }
-
-    /* Initialize user-defined IRC context, with two buffers */
-    irc_ctx_t ctx;
-    irc_set_ctx(sess, &ctx);
-
-    /* Save terminal state */
-    ioctl(0, TIOCGWINSZ, &ctx.ttysize);
-    tcgetattr(0, &ctx.termstate);
-    memcpy(&ctx.termstate_raw, &ctx.termstate, sizeof(ctx.termstate_raw)); 
- 
-    /* Set initial nickwidth timestamp */
-    ctx.nickwidth_set_at = time(NULL);
- 
-    /* On exit, clean up memory and reset terminal state */
-    atexit(exit_cleanup);
 
     /* Initialize buffers */
     ctx.server_buffer = init_buffer(sess, arguments.args[0]);
