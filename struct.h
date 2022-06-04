@@ -60,3 +60,4 @@ extern bool input_wait;
 extern bool output_wait;
 extern time_t nickwidth_set_at;
 extern FILE *pager;
+extern int errno;

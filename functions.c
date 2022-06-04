@@ -109,7 +109,7 @@ int add_member(char *channel, char *nick)
     if(!channel_isjoined(channel))
     {
         char errmsg[256];
-        snprintf(errmsg, 256, "<error adding %s to nonexistant channel \'%s\'.>", nick, channel);
+        snprintf(errmsg, 256, "<cannot add %s to nonexistant channel \'%s\'.>", nick, channel);
         server_buffer->curr = add_to_buffer(server_buffer, errmsg);
 
         print_new_messages();
@@ -174,7 +174,7 @@ int delete_member(char *channel, char *nick)
     if(!channel_isjoined(channel))
     {
         char errmsg[256];
-        snprintf(errmsg, 256, "<error removing %s from nonexistant channel \'%s\'.>", nick, channel);
+        snprintf(errmsg, 256, "<cannot remove %s from nonexistant channel \'%s\'.>", nick, channel);
         server_buffer->curr = add_to_buffer(server_buffer, errmsg);
 
         print_new_messages();
@@ -282,7 +282,7 @@ void send_message(irc_session_t *s)
     int nickwidth_tmp = message_buffer->nickwidth;
     if(message_buffer == server_buffer)
     {
-        printf("<you can't send messages to the server buffer>\n");       
+        printf("<press 'g' to go to channel>\n");       
         return;
     }
     snprintf(nickbuf, 141, "\e[36;1m[%s]\e[0m", ctx->nick);
@@ -447,7 +447,7 @@ void rewind_buffer(bufline *buffer_read_ptr, int lines)
         pager = popen("more", "w");
         if (pager == NULL)
         {
-            printf("Error opening pager\r\n");
+            fprintf(stderr, "Error opening pager\r\n");
         }
 
         while (buffer_read_ptr->next != NULL)
@@ -460,7 +460,7 @@ void rewind_buffer(bufline *buffer_read_ptr, int lines)
         fpstatus = pclose(pager);
         if (fpstatus == -1)
         {
-            printf("Pipe returned an error\r\n");
+            fprintf(stderr, "Pipe returned an error\r\n");
         }
 
         printf("--Review-Complete---------------------------------------------------------------\r\n");

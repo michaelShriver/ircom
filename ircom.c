@@ -1,4 +1,3 @@
-#include "arguments.h"
 #include "handlers.h"
 
 bufptr *server_buffer;
@@ -11,9 +10,11 @@ bool output_wait = 0;
 time_t nickwidth_set_at;
 int port;
 FILE *pager;
+int errno;
 
 int main(int argc, char **argv)
 {
+    errno = 0;
     struct arguments arguments;
     arguments.port = 0;
     arguments.nick = NULL;
@@ -85,7 +86,7 @@ int main(int argc, char **argv)
     /* check for error */
     if (!sess)
     {
-        printf ("Could not create session\n");
+        fprintf (stderr, "Could not create session\n");
         exit(1);
     }
 
@@ -151,7 +152,7 @@ int main(int argc, char **argv)
     /* Initiate the IRC server connection */
     if (irc_connect(sess, server, port, 0, ctx.nick, ctx.username, ctx.realname))
     {
-        printf ("Could not connect: %s\n", irc_strerror (irc_errno(sess)));
+        fprintf (stderr, "Could not connect: %s\n", irc_strerror (irc_errno(sess)));
         exit(1);
     }
 
@@ -159,7 +160,7 @@ int main(int argc, char **argv)
     int err = pthread_create(&event_thread, NULL, irc_event_loop, (void *)sess);
     if (err)
     {
-        printf ("FATAL: Failed thread IRC event handler\n");
+        fprintf (stderr, "FATAL: Failed thread IRC event handler\n");
         exit(1);
     }
 
@@ -351,11 +352,10 @@ int main(int argc, char **argv)
                 int output_timeout = 0;
 
                 output_wait = 1;
-                tcsetattr(0, TCSANOW, &termstate);
                 pager = popen("more", "w");
                 if (pager == NULL)
                 {
-                    printf("Error opening pager\r\n");
+                    fprintf(stderr, "Error opening pager\r\n");
                 }
                 irc_cmd_list(sess, NULL);
                 while(output_wait);
@@ -365,10 +365,11 @@ int main(int argc, char **argv)
                     output_timeout++;
                     sleep(.1);
                 }
+                tcsetattr(0, TCSANOW, &termstate);
                 fpstatus = pclose(pager);
                 if (fpstatus == -1)
                 {
-                    printf("Pipe returned an error\r\n");
+                    fprintf(stderr, "Pipe returned an error\r\n");
                 }
                 tcsetattr(0, TCSANOW, &termstate_raw);
                 break;

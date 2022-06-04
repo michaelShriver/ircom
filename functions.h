@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdio.h>
+#include <errno.h>
 #include <stdarg.h>
 #include <string.h>
 #include <stdlib.h>
@@ -9,6 +10,7 @@
 #include "pthread.h"
 #include "libircclient.h"
 #include "struct.h"
+#include "arguments.h"
 
 bufline *add_to_buffer();
 bufptr *init_buffer();

@@ -8,7 +8,7 @@ void *irc_event_loop(void *sess)
 
     if (irc_run(s))
     {
-        printf ("Could not connect or I/O error: %s\r\n", irc_strerror (irc_errno(sess)));
+        fprintf (stderr, "Could not connect or I/O error: %s\r\n", irc_strerror (irc_errno(sess)));
         exit(1);
     }
 
@@ -254,13 +254,6 @@ void event_topic(irc_session_t *session, const char *event, const char *origin, 
 void event_connect(irc_session_t *session, const char *event, const char *origin, const char **params, unsigned int count)
 {
     irc_ctx_t *ctx = irc_get_ctx(session);
-    //dump_event (session, event, origin, params, count);
-    /*
-    char *msgbuf = irc_color_strip_from_mirc(params[1]);
-    server_buffer->curr dd_to_buffer(server_buffer, msgbuf);
-    free(msgbuf);
-    */
-
     if(ctx->active_channel != NULL)
         irc_cmd_join (session, ctx->active_channel, 0);
 
