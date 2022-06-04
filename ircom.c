@@ -16,7 +16,6 @@ int errno;
 
 int main(int argc, char **argv)
 {
-    errno = 0;
     struct arguments arguments;
     arguments.port = 0;
     arguments.nick = NULL;
@@ -25,29 +24,14 @@ int main(int argc, char **argv)
     arguments.enable_tls = 0;
     arguments.noverify = 0;
 
-    /* Initialize callbacks and pointers */
-    irc_callbacks_t callbacks;
-    irc_session_t *sess;
     char keycmd;
     pthread_t event_thread;
 
-    /* Initialize user-defined IRC context, with two buffers */
-    irc_ctx_t ctx;
-    irc_set_ctx(sess, &ctx);
-
-    /* Save terminal state */
-    ioctl(0, TIOCGWINSZ, &ctx.ttysize);
-    tcgetattr(0, &ctx.termstate);
-    memcpy(&ctx.termstate_raw, &ctx.termstate, sizeof(ctx.termstate_raw)); 
-
-    /* On exit, clean up memory and reset terminal state */
-    atexit(exit_cleanup);
+    /* Initialize callbacks */
+    irc_callbacks_t callbacks;
 
     /* Zero out memory allocation for callbacks struct */
     memset (&callbacks, 0, sizeof(callbacks));
-
-    /* Set initial nickwidth timestamp */
-    ctx.nickwidth_set_at = time(NULL);
 
     callbacks.event_connect = event_connect;
     callbacks.event_join = event_join;
@@ -68,11 +52,7 @@ int main(int argc, char **argv)
     callbacks.event_numeric = event_numeric;
 
     /* Create a new IRC session */
-    sess = irc_create_session(&callbacks);
-    if (arguments.noverify)
-    {
-        irc_option_set(sess, LIBIRC_OPTION_SSL_NO_VERIFY);
-    }
+    irc_session_t *sess = irc_create_session(&callbacks);
 
     /* check for error */
     if (!sess)
@@ -80,6 +60,24 @@ int main(int argc, char **argv)
         fprintf (stderr, "Could not create session\n");
         exit(1);
     }
+
+    /* Initialize user-defined IRC context, with two buffers */
+    irc_ctx_t ctx;
+    irc_set_ctx(sess, &ctx);
+
+    /* On exit, clean up memory and reset terminal state */
+    atexit(exit_cleanup);
+
+    /* Set initial nickwidth timestamp */
+    ctx.nickwidth_set_at = time(NULL);
+
+    /* Save terminal state */
+    ioctl(0, TIOCGWINSZ, &ctx.ttysize);
+    tcgetattr(0, &ctx.termstate);
+    memcpy(&ctx.termstate_raw, &ctx.termstate, sizeof(ctx.termstate_raw)); 
+ 
+    /* Set initial nickwidth timestamp */
+    ctx.nickwidth_set_at = time(NULL);
 
     /* Initialize buffers */
     ctx.server_buffer = init_buffer(sess, arguments.args[0]);
@@ -89,6 +87,11 @@ int main(int argc, char **argv)
 
     /* Process command line arguments */
     argp_parse (&argp, argc, argv, 0, 0, &arguments);
+
+    if (arguments.noverify)
+    {
+        irc_option_set(sess, LIBIRC_OPTION_SSL_NO_VERIFY);
+    }
 
     /* Set Port */
     if (arguments.port <= 0 || arguments.port > 65535)
