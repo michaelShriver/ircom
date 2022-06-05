@@ -67,18 +67,6 @@ int main(int argc, char **argv)
     /* Initialize user-defined IRC context, with two buffers */
     irc_ctx_t ctx;
 
-    ctx.active_channel = NULL;
-    ctx.buffer_count = 0;
-    ctx.buffer_read_ptr = NULL;
-    ctx.input_wait = 0;
-    memset(ctx.nick, '\0', sizeof(ctx.nick));
-    ctx.nickwidth_set_at = NULL;
-    ctx.output_wait = 0;
-    ctx.pager = NULL;
-    ctx.port = 0;
-    memset(ctx.realname, '\0', sizeof(ctx.realname));
-    ctx.server_buffer = NULL;
-
     irc_set_ctx(sess, &ctx);
 
     /* On exit, clean up memory and reset terminal state */

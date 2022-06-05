@@ -328,7 +328,7 @@ void event_notice (irc_session_t *session, const char *event, const char *origin
     time_t now = time(&now);
     struct tm *utc = gmtime(&now);
     strftime(timebuf, 9, "%H:%M:%S", utc);
-    irc_ctx_t * ctx = irc_get_ctx(session);
+    irc_ctx_t *ctx = irc_get_ctx(session);
 
     irc_target_get_nick (origin, nickbuf, sizeof(nickbuf));
     while(ctx->input_wait == 1)

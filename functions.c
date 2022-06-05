@@ -477,7 +477,7 @@ void rewind_buffer(irc_session_t *s, bufline *buffer_read_ptr, int lines)
 
 void print_new_messages(irc_session_t *s)
 {
-    irc_ctx_t * ctx = irc_get_ctx(s);
+    irc_ctx_t *ctx = irc_get_ctx(s);
     if (ctx->input_wait == 0)
     {
         /* Walk the message buffer, and write messages to the terminal */
