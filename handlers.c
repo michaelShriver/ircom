@@ -331,8 +331,8 @@ void event_notice (irc_session_t *session, const char *event, const char *origin
     struct tm *utc = gmtime(&now);
     strftime(timebuf, 9, "%H:%M:%S", utc);
     irc_ctx_t *ctx = irc_get_ctx(session);
-
     irc_target_get_nick(origin, nickbuf, sizeof(nickbuf));
+
     while(ctx->input_wait == 1)
         sleep(1);
     printf ("\e[33;1m[%s] NOTICE from %s: %s\e[0m\r\n", timebuf, origin ? nickbuf : "someone", message);
@@ -343,8 +343,25 @@ void event_nick (irc_session_t *session, const char *event, const char *origin, 
 {
     char nickbuf[128];
     irc_ctx_t * ctx = irc_get_ctx(session);
+    irc_target_get_nick(origin, nickbuf, sizeof(nickbuf));
 
+    if(strcmp(ctx->nick, nickbuf) == 0)
+    {
+        memcpy(ctx->nick, params[0], 128);
+    }
+    else
+    {
+        bufptr *search_ptr = ctx->server_buffer->nextbuf;
 
+        while(search_ptr != NULL)
+        {
+            if(delete_member(session, search_ptr->channel, nickbuf))
+                add_member(session, search_ptr->channel, params[0]);
+            
+            search_ptr = search_ptr->nextbuf;
+        }
+
+    }
 }
 
 void event_numeric (irc_session_t *session, unsigned int event, const char *origin, const char **params, unsigned int count)

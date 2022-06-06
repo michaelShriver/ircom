@@ -50,7 +50,6 @@ struct irc_ctx_t
     char realname[128];
     int port;
     char *active_channel;
-    int buffer_count;
     bufptr *server_buffer;
     bufline *buffer_read_ptr;
     struct termios termstate;

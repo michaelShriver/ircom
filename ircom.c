@@ -29,7 +29,7 @@ int main(int argc, char **argv)
 
     callbacks.event_connect = event_connect;
     callbacks.event_join = event_join;
-    callbacks.event_nick = dump_event;
+    callbacks.event_nick = event_nick;
     callbacks.event_quit = event_quit;
     callbacks.event_part = event_part;
     callbacks.event_mode = dump_event;
@@ -70,7 +70,9 @@ int main(int argc, char **argv)
     /* Save terminal state */
     ioctl(0, TIOCGWINSZ, &ctx.ttysize);
     tcgetattr(0, &ctx.termstate);
-    memcpy(&ctx.termstate_raw, &ctx.termstate, sizeof(ctx.termstate_raw)); 
+    memcpy(&ctx.termstate_raw, &ctx.termstate, sizeof(ctx.termstate_raw));
+
+    //irc_option_set(sess, LIBIRC_OPTION_STRIPNICKS);
 
     if (arguments.noverify)
     {
@@ -391,6 +393,7 @@ int main(int argc, char **argv)
             {
                 clear_all(ctx.server_buffer);
                 tcsetattr(0, TCSANOW, &ctx.termstate);
+                irc_destroy_session(sess);
                 exit(0);
             }
             case 'r':

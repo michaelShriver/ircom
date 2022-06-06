@@ -133,7 +133,7 @@ int nick_is_member(irc_session_t *s, char *channel, char *nick)
     return 0;
 }
 
-int add_member(irc_session_t *s, const char *channel, char *nick)
+int add_member(irc_session_t *s, const char *channel, const char *nick)
 {
     irc_ctx_t * ctx = irc_get_ctx(s);
     if(!channel_isjoined(s, channel))

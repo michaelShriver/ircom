@@ -18,7 +18,7 @@ bufptr *channel_buffer(irc_session_t *, const char *);
 char *get_input();
 int channel_isjoined(irc_session_t *, const char *);
 int nick_is_member(irc_session_t *, char *, char *);
-int add_member(irc_session_t *, const char *, char *);
+int add_member(irc_session_t *, const char *, const char *);
 int delete_member(irc_session_t *, const char *, const char *);
 int nickwidth_timer(irc_session_t *, char *);
 void send_message(irc_session_t *);
