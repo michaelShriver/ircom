@@ -125,7 +125,7 @@ void event_kick(irc_session_t *session, const char *event, const char *origin, c
                 irc_cmd_names(session, ctx->active_channel);
         }
 
-        clear_buffer(doomed_buffer);
+        clear_buffer(session, doomed_buffer);
     }
     else
     {

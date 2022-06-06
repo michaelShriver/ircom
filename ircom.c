@@ -1,19 +1,5 @@
 #include "handlers.h"
 
-/*
-bufptr *server_buffer;
-bufline *buffer_read_ptr;
-struct termios termstate;
-struct termios termstate_raw;
-struct winsize ttysize;
-bool input_wait = 0;
-bool output_wait = 0;
-time_t nickwidth_set_at;
-int port;
-FILE *pager;
-int errno;
-*/
-
 int main(int argc, char **argv)
 {
 
@@ -156,6 +142,7 @@ int main(int argc, char **argv)
 
     /* On exit, clean up memory and reset terminal state */
     atexit(exit_cleanup);
+    //on_exit(exit_cleanup, sess);
 
     /* Initiate the IRC server connection */
     if (irc_connect(sess, server, ctx.port, 0, ctx.nick, ctx.username, ctx.realname))
@@ -405,6 +392,8 @@ int main(int argc, char **argv)
             case 'q':
             case 3:
             {
+                clear_all(ctx.server_buffer);
+                tcsetattr(0, TCSANOW, &ctx.termstate);
                 exit(0);
             }
             case 'r':

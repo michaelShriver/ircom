@@ -1,6 +1,6 @@
 #include "functions.h"
 
-bufptr *init_buffer(irc_session_t *s, char *channel)
+bufptr *init_buffer(irc_session_t *s, const char *channel)
 {
     irc_ctx_t *ctx = irc_get_ctx(s);
     size_t chanlen = (sizeof(*channel) * (strlen(channel) + 1));
@@ -63,7 +63,7 @@ nickname *init_nickentry()
 }
 
 /* Return a pointer for a specified channel's buffer, init a new buffer if needed */
-bufptr *channel_buffer(irc_session_t *s, char *channel)
+bufptr *channel_buffer(irc_session_t *s, const char *channel)
 {
     irc_ctx_t *ctx = irc_get_ctx(s);
     bufptr *search_ptr = ctx->server_buffer;
@@ -86,7 +86,7 @@ bufptr *channel_buffer(irc_session_t *s, char *channel)
     return search_ptr->nextbuf;
 }
 
-int channel_isjoined(irc_session_t *s, char *channel)
+int channel_isjoined(irc_session_t *s, const char *channel)
 {
     irc_ctx_t * ctx = irc_get_ctx(s);
     bufptr *search_ptr = ctx->server_buffer;
@@ -132,7 +132,7 @@ int nick_is_member(irc_session_t *s, char *channel, char *nick)
     return 0;
 }
 
-int add_member(irc_session_t *s, char *channel, char *nick)
+int add_member(irc_session_t *s, const char *channel, char *nick)
 {
     irc_ctx_t * ctx = irc_get_ctx(s);
     if(!channel_isjoined(s, channel))
@@ -198,7 +198,7 @@ int add_member(irc_session_t *s, char *channel, char *nick)
     return 1;
 }
 
-int delete_member(irc_session_t *s, char *channel, char *nick)
+int delete_member(irc_session_t *s, const char *channel, const char *nick)
 {
     irc_ctx_t * ctx = irc_get_ctx(s);
     if(!channel_isjoined(s, channel))
@@ -393,10 +393,12 @@ void send_privmsg(irc_session_t *s)
     return;
 }
 
-void show_prompt(irc_ctx_t ctx)
+void show_prompt(irc_session_t *s)
 {
+    irc_ctx_t *ctx = irc_get_ctx(s);
+
     char nickbuf[130];
-    snprintf(nickbuf, 130, "[%s]", ctx.nick);
+    snprintf(nickbuf, 130, "[%s]", ctx->nick);
     printf("%-*s ", (int)strlen(nickbuf)+2, nickbuf);
 }
 
@@ -573,13 +575,9 @@ void peek_channel(irc_session_t *s)
     return;
 }
 
-void exit_cleanup(irc_session_t *s)
+void exit_cleanup()
 {
-    irc_ctx_t * ctx = irc_get_ctx(s);
-
     printf("Unlinking TTY ..\r\n");
-    clear_all(ctx->server_buffer);
-    tcsetattr(0, TCSANOW, &ctx->termstate);
 }
 
 void reset_nicklist(irc_session_t *s, char *channel)

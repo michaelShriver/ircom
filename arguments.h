@@ -30,6 +30,6 @@ struct arguments
     int noverify;
 };
 
-error_t parse_opt();
+error_t parse_opt(int, char *, struct argp_state*);
 
 static struct argp argp = {options, parse_opt, args_doc, doc};
