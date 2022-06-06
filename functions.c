@@ -135,7 +135,7 @@ int nick_is_member(irc_session_t *s, char *channel, char *nick)
 int add_member(irc_session_t *s, char *channel, char *nick)
 {
     irc_ctx_t * ctx = irc_get_ctx(s);
-    if(!channel_isjoined(s,channel))
+    if(!channel_isjoined(s, channel))
     {
         char errmsg[256];
         snprintf(errmsg, 256, "<cannot add %s to nonexistant channel \'%s\'.>", nick, channel);

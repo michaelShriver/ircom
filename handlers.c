@@ -34,7 +34,7 @@ void event_join(irc_session_t *session, const char *event, const char *origin, c
         irc_cmd_user_mode(session, "+i");
     }
     else
-        add_member(session, xparams[0], nickbuf);
+        add_member(session, params[0], nickbuf);
 
     char joinmsg[290];
     snprintf(joinmsg, 277, "\e[33;1m[%s] %s has joined %s.\e[0m", timebuf, nickbuf, params[0]);
