@@ -31,10 +31,10 @@ void event_join(irc_session_t *session, const char *event, const char *origin, c
     {
         ctx->buffer_read_ptr = message_buffer->curr;
         ctx->active_channel = message_buffer->channel;
-        irc_cmd_user_mode (session, "+i");
+        irc_cmd_user_mode(session, "+i");
     }
     else
-        add_member(params[0], nickbuf);
+        add_member(session, xparams[0], nickbuf);
 
     char joinmsg[290];
     snprintf(joinmsg, 277, "\e[33;1m[%s] %s has joined %s.\e[0m", timebuf, nickbuf, params[0]);
