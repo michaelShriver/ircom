@@ -279,10 +279,10 @@ void event_channel (irc_session_t *session, const char *event, const char *origi
     irc_target_get_nick(origin, nickbuf, sizeof(nickbuf));
     bufptr *message_buffer = channel_buffer(session, params[0]);
     snprintf(nick, 141, "\e[36;1m[%s]\e[0m", nickbuf);
-    if (nickwidth_timer(session) || (strlen(nick) > message_buffer->nickwidth))
+    if (nickwidth_timer(session, message_buffer->channel) || (strlen(nick) > message_buffer->nickwidth))
     {
         message_buffer->nickwidth = strlen(nick);
-        ctx->nickwidth_set_at = time(NULL);
+        message_buffer->nickwidth_set_at = time(NULL);
     }
     snprintf(messageline, 2048, "%-*s %s", message_buffer->nickwidth, nick, msgbuf);
     message_buffer->curr = add_to_buffer(message_buffer, messageline);
@@ -337,6 +337,14 @@ void event_notice (irc_session_t *session, const char *event, const char *origin
         sleep(1);
     printf ("\e[33;1m[%s] NOTICE from %s: %s\e[0m\r\n", timebuf, origin ? nickbuf : "someone", message);
     free(message);
+}
+
+void event_nick (irc_session_t *session, const char *event, const char *origin, const char **params, unsigned int count)
+{
+    char nickbuf[128];
+    irc_ctx_t * ctx = irc_get_ctx(session);
+
+
 }
 
 void event_numeric (irc_session_t *session, unsigned int event, const char *origin, const char **params, unsigned int count)

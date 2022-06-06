@@ -14,4 +14,5 @@ void event_privmsg(irc_session_t *, const char *, const char *, const char **, u
 void event_notice(irc_session_t *, const char *, const char *, const char **, unsigned int);
 void event_channel(irc_session_t *, const char *, const char *, const char **, unsigned int);
 void event_action(irc_session_t *, const char *, const char *, const char **, unsigned int);
+void event_nick(irc_session_t *, const char *, const char *, const char **, unsigned int);
 void event_numeric(irc_session_t *, unsigned int, const char *, const char **, unsigned int);

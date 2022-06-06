@@ -20,7 +20,7 @@ int channel_isjoined(irc_session_t *, const char *);
 int nick_is_member(irc_session_t *, char *, char *);
 int add_member(irc_session_t *, const char *, char *);
 int delete_member(irc_session_t *, const char *, const char *);
-int nickwidth_timer(irc_session_t *);
+int nickwidth_timer(irc_session_t *, char *);
 void send_message(irc_session_t *);
 void send_action(irc_session_t *);
 void send_privmsg(irc_session_t *);

@@ -15,6 +15,7 @@ bufptr *init_buffer(irc_session_t *s, const char *channel)
     channel_buffer->nickwidth = 11;
     channel_buffer->nickcount = 0;
     channel_buffer->nicklist = NULL;
+    channel_buffer->nickwidth_set_at = time(NULL);
     channel_buffer->curr->prev = NULL;
     channel_buffer->curr->next = NULL;
     channel_buffer->curr->message = NULL;
@@ -257,15 +258,15 @@ int delete_member(irc_session_t *s, const char *channel, const char *nick)
     return 0;
 }
 
-int nickwidth_timer(irc_session_t *s)
+int nickwidth_timer(irc_session_t *s, char *channel)
 {
     irc_ctx_t * ctx = irc_get_ctx(s);
     time_t current_time = time(NULL);
 
-    if (current_time > (ctx->nickwidth_set_at + 900))
+    if (current_time > (channel_buffer(s, channel)->nickwidth_set_at + 900))
     {
         return 1;
-    }    
+    }
 
     return 0;
 }
@@ -317,10 +318,10 @@ void send_message(irc_session_t *s)
         return;
     }
     snprintf(nickbuf, 141, "\e[36;1m[%s]\e[0m", ctx->nick);
-    if (nickwidth_timer(s) || strlen(nickbuf) > message_buffer->nickwidth)
+    if (nickwidth_timer(s, ctx->active_channel) || strlen(nickbuf) > message_buffer->nickwidth)
     {
         message_buffer->nickwidth = strlen(nickbuf);
-        ctx->nickwidth_set_at = time(NULL);
+        message_buffer->nickwidth_set_at = time(NULL);
     }
 
     printf("%-*s ", message_buffer->nickwidth, nickbuf);

@@ -65,15 +65,12 @@ int main(int argc, char **argv)
     ctx.buffer_read_ptr = ctx.server_buffer->curr;
 
     /* Set initial nickwidth timestamp */
-    ctx.nickwidth_set_at = time(NULL);
+    //ctx.nickwidth_set_at = time(NULL);
 
     /* Save terminal state */
     ioctl(0, TIOCGWINSZ, &ctx.ttysize);
     tcgetattr(0, &ctx.termstate);
     memcpy(&ctx.termstate_raw, &ctx.termstate, sizeof(ctx.termstate_raw)); 
- 
-    /* Set initial nickwidth timestamp */
-    ctx.nickwidth_set_at = time(NULL);
 
     if (arguments.noverify)
     {

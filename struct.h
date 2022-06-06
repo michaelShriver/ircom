@@ -34,6 +34,7 @@ struct bufptr
     char *topicsetby;
     int nickwidth;
     int nickcount;
+    time_t nickwidth_set_at;
     bufline *head;
     bufline *curr;
     struct nickname *nicklist;
@@ -57,6 +58,5 @@ struct irc_ctx_t
     struct winsize ttysize;
     bool input_wait;
     bool output_wait;
-    time_t nickwidth_set_at;
     FILE *pager;
 };
