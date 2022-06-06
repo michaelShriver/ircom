@@ -13,6 +13,7 @@
 
 bufline *add_to_buffer();
 bufptr *init_buffer();
+bufptr *init_server_buffer();
 nickname *init_nickentry();
 bufptr *channel_buffer();
 char *get_input();

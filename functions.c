@@ -2,7 +2,7 @@
 
 bufptr *init_buffer(irc_session_t *s, char *channel)
 {
-    irc_ctx_t * ctx = irc_get_ctx(s);
+    irc_ctx_t *ctx = irc_get_ctx(s);
     size_t chanlen = (sizeof(*channel) * (strlen(channel) + 1));
     char *bufchan = malloc(chanlen);
     memcpy(bufchan, channel, chanlen);
@@ -27,6 +27,31 @@ bufptr *init_buffer(irc_session_t *s, char *channel)
     return channel_buffer;
 }
 
+bufptr *init_server_buffer(irc_session_t *s, char *server)
+{
+    irc_ctx_t *ctx = irc_get_ctx(s);
+    size_t chanlen = (sizeof(*server) * (strlen(server) + 1));
+    char *bufchan = malloc(chanlen);
+    memcpy(bufchan, server, chanlen);
+
+    bufptr *channel_buffer = malloc(sizeof(struct bufptr));
+    channel_buffer->head = channel_buffer->curr = malloc(sizeof(struct bufline));
+    channel_buffer->channel = bufchan;
+    channel_buffer->topic = NULL;
+    channel_buffer->topicsetby = NULL;
+    channel_buffer->nickwidth = 11;
+    channel_buffer->nickcount = 0;
+    channel_buffer->nicklist = NULL;
+    channel_buffer->curr->prev = NULL;
+    channel_buffer->curr->next = NULL;
+    channel_buffer->curr->message = NULL;
+    channel_buffer->curr->isread = NULL;
+    channel_buffer->prevbuf = NULL;
+    channel_buffer->nextbuf = NULL;
+
+    return channel_buffer;
+}
+
 nickname *init_nickentry()
 {
     nickname *nickentry = malloc(sizeof(nickname));
@@ -40,7 +65,7 @@ nickname *init_nickentry()
 /* Return a pointer for a specified channel's buffer, init a new buffer if needed */
 bufptr *channel_buffer(irc_session_t *s, char *channel)
 {
-    irc_ctx_t * ctx = irc_get_ctx(s);
+    irc_ctx_t *ctx = irc_get_ctx(s);
     bufptr *search_ptr = ctx->server_buffer;
 
     if(strcmp(search_ptr->channel, channel) == 0)
@@ -410,7 +435,7 @@ char * get_input()
     return input;
 }
 
-void rewind_buffer(irc_session_t *s, bufline *buffer_read_ptr, int lines)
+void rewind_buffer(irc_session_t *s, int lines)
 {
     irc_ctx_t * ctx = irc_get_ctx(s);
     ioctl(0, TIOCGWINSZ, &ctx->ttysize);
@@ -420,21 +445,21 @@ void rewind_buffer(irc_session_t *s, bufline *buffer_read_ptr, int lines)
         lines = 0;
         while(lines < (ctx->ttysize.ws_row - 4))
         {
-            if (buffer_read_ptr->prev == NULL)
+            if (ctx->buffer_read_ptr->prev == NULL)
                 break; 
-            lines = lines + (((strlen(buffer_read_ptr->message)) / ctx->ttysize.ws_col) + 1);
-            buffer_read_ptr = buffer_read_ptr->prev;
+            lines = lines + (((strlen(ctx->buffer_read_ptr->message)) / ctx->ttysize.ws_col) + 1);
+            ctx->buffer_read_ptr = ctx->buffer_read_ptr->prev;
         }
-        if (buffer_read_ptr->next != NULL)
-            buffer_read_ptr = buffer_read_ptr->next;
+        if (ctx->buffer_read_ptr->next != NULL)
+            ctx->buffer_read_ptr = ctx->buffer_read_ptr->next;
 
         printf("--Beginning-Review--------------------------------------------------------------\r\n");
-        while (buffer_read_ptr->next != NULL)
+        while (ctx->buffer_read_ptr->next != NULL)
         {
-            printf("%s\r\n", buffer_read_ptr->message);
-            buffer_read_ptr = buffer_read_ptr->next;
+            printf("%s\r\n", ctx->buffer_read_ptr->message);
+            ctx->buffer_read_ptr = ctx->buffer_read_ptr->next;
         }
-        printf("%s\r\n", buffer_read_ptr->message);
+        printf("%s\r\n", ctx->buffer_read_ptr->message);
         printf("--Review-Complete---------------------------------------------------------------\r\n");
 
     }
@@ -442,9 +467,9 @@ void rewind_buffer(irc_session_t *s, bufline *buffer_read_ptr, int lines)
     {
         for (lines--; lines > 0; lines--)
         {
-            if (buffer_read_ptr->prev == NULL)
+            if (ctx->buffer_read_ptr->prev == NULL)
                break; 
-            buffer_read_ptr = buffer_read_ptr->prev;
+            ctx->buffer_read_ptr = ctx->buffer_read_ptr->prev;
         }
 
         printf("--Beginning-Review--------------------------------------------------------------\r\n");
@@ -457,12 +482,12 @@ void rewind_buffer(irc_session_t *s, bufline *buffer_read_ptr, int lines)
             fprintf(stderr, "Error opening pager\r\n");
         }
 
-        while (buffer_read_ptr->next != NULL)
+        while (ctx->buffer_read_ptr->next != NULL)
         {
-            fprintf(ctx->pager, "%s\r\n", buffer_read_ptr->message);
-            buffer_read_ptr = buffer_read_ptr->next;
+            fprintf(ctx->pager, "%s\r\n", ctx->buffer_read_ptr->message);
+            ctx->buffer_read_ptr = ctx->buffer_read_ptr->next;
         }
-        fprintf(ctx->pager, "%s\r\n", buffer_read_ptr->message);
+        fprintf(ctx->pager, "%s\r\n", ctx->buffer_read_ptr->message);
 
         fpstatus = pclose(ctx->pager);
         if (fpstatus == -1)
@@ -517,7 +542,25 @@ void peek_channel(irc_session_t *s)
     {
         if(strcmp(search_ptr->nextbuf->channel, channel) == 0)
         {
-            rewind_buffer(s, search_ptr->nextbuf->curr, -1);
+            int lines = 0;
+            while(lines < (ctx->ttysize.ws_row - 4))
+            {
+                if (search_ptr->nextbuf->curr->prev == NULL)
+                    break; 
+                lines = lines + (((strlen(search_ptr->nextbuf->curr->message)) / ctx->ttysize.ws_col) + 1);
+                search_ptr->nextbuf->curr = search_ptr->nextbuf->curr->prev;
+            }
+            if (search_ptr->nextbuf->curr->next != NULL)
+                search_ptr->nextbuf->curr = search_ptr->nextbuf->curr->next;
+
+            printf("--Beginning-Review--------------------------------------------------------------\r\n");
+            while (search_ptr->nextbuf->curr->next != NULL)
+            {
+                printf("%s\r\n", search_ptr->nextbuf->curr->message);
+                search_ptr->nextbuf->curr = search_ptr->nextbuf->curr->next;
+            }
+            printf("%s\r\n", search_ptr->nextbuf->curr->message);
+            printf("--Review-Complete---------------------------------------------------------------\r\n");
             return;
         }
 
@@ -533,6 +576,7 @@ void peek_channel(irc_session_t *s)
 void exit_cleanup(irc_session_t *s)
 {
     irc_ctx_t * ctx = irc_get_ctx(s);
+
     printf("Unlinking TTY ..\r\n");
     clear_all(ctx->server_buffer);
     tcsetattr(0, TCSANOW, &ctx->termstate);

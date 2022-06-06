@@ -5,7 +5,6 @@ PREFIX  = /usr/local
 
 OS     := $(shell uname -s)
 HOST   := $(shell hostname)
-DOMAIN := $(shell domainname)
 
 ifeq ($(OS),Linux)
 	ifeq ($(HOST),ma.sdf.org)
@@ -21,6 +20,7 @@ ifeq ($(OS),FreeBSD)
 	LIBS   += -largp
 endif
 ifeq ($(OS),NetBSD)
+	DOMAIN := $(shell domainname)
 	ifeq ($(DOMAIN),SDF)
 		CFLAGS += -I$(HOME)/.local/include -L$(HOME)/.local/lib
 		PREFIX  = $(HOME)/.local
