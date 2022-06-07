@@ -255,7 +255,6 @@ void event_connect(irc_session_t *s, const char *event, const char *origin, cons
 {
     irc_ctx_t *ctx = irc_get_ctx(s);
 
-    //ctx->server_buffer = channel_buffer(s, ctx->active_channel);
     if(strcmp(ctx->active_channel, ctx->server_buffer->channel))
         irc_cmd_join(s, ctx->active_channel, 0);
 
@@ -473,6 +472,19 @@ void event_numeric (irc_session_t *session, unsigned int event, const char *orig
 
             break;
         }
+        case 433:
+        {
+            // Nick in use
+            size_t nicklen = sizeof(char)*(strlen(ctx->nick)+2);
+            char *newnick = malloc(nicklen);
+
+            memcpy(newnick, ctx->nick, nicklen);
+            strncat(newnick, "_", nicklen);
+            memcpy(ctx->nick, newnick, nicklen);
+            irc_cmd_nick(session, newnick);
+            free(newnick);
+            break;
+        }
         // Generic events handlers, dump to server buffer:
         case 372:
         {
@@ -492,6 +504,7 @@ void event_numeric (irc_session_t *session, unsigned int event, const char *orig
             print_new_messages(session);
             break;
         }
+        // To implement:
         case 403:
         {
             // No such channel

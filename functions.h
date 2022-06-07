@@ -24,6 +24,7 @@ int nickwidth_timer(irc_session_t *, char *);
 void send_message(irc_session_t *);
 void send_action(irc_session_t *);
 void send_privmsg(irc_session_t *);
+void change_nick(irc_session_t *);
 void kick_user(irc_session_t *);
 void rewind_buffer(irc_session_t *, int);
 void peek_channel(irc_session_t *);

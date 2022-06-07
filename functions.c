@@ -394,6 +394,20 @@ void send_privmsg(irc_session_t *s)
     return;
 }
 
+void change_nick(irc_session_t *s)
+{
+    irc_ctx_t *ctx = irc_get_ctx(s);
+    char *nick;
+    bufptr *active_channel = channel_buffer(s, ctx->active_channel);
+
+    printf("%-*s ", active_channel->nickwidth-11, ":nick>");
+    nick = get_input();
+
+    irc_cmd_nick(s, nick);
+
+    free(nick);
+}
+
 void show_prompt(irc_session_t *s)
 {
     irc_ctx_t *ctx = irc_get_ctx(s);

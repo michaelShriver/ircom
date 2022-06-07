@@ -72,8 +72,6 @@ int main(int argc, char **argv)
     tcgetattr(0, &ctx.termstate);
     memcpy(&ctx.termstate_raw, &ctx.termstate, sizeof(ctx.termstate_raw));
 
-    //irc_option_set(sess, LIBIRC_OPTION_STRIPNICKS);
-
     if (arguments.noverify)
     {
         irc_option_set(sess, LIBIRC_OPTION_SSL_NO_VERIFY);
@@ -317,16 +315,17 @@ int main(int argc, char **argv)
                 printf("\n  ");
                 printf("%-36s", "\e[33;1mk\e[0m - kick a user");
                 printf("%-36s", "\e[33;1ml\e[0m - list open rooms");
-                printf("%-36s", "\e[33;1mp\e[0m - peek into room");
+                printf("%-36s", "\e[33;1mn\e[0m - change nick");
                 printf("\n  ");
+                printf("%-36s", "\e[33;1mp\e[0m - peek into room");
                 printf("%-36s", "\e[33;1mP\e[0m - leave current room");
                 printf("%-36s", "\e[33;1mq\e[0m - quit commode");
-                printf("%-36s", "\e[33;1mr\e[0m - room history");
                 printf("\n  ");
+                printf("%-36s", "\e[33;1mr\e[0m - room history");
                 printf("%-36s", "\e[33;1mR\e[0m - extended history");
                 printf("%-36s", "\e[33;1ms\e[0m - send private");
-                printf("%-36s", "\e[33;1mw\e[0m - who is in the room");
                 printf("\n  ");
+                printf("%-36s", "\e[33;1mw\e[0m - who is in the room");
                 printf("%-36s", "\e[33;1m<\e[0m - surf rooms backward");
                 printf("%-36s", "\e[33;1m>\e[0m - surf rooms forward");
                 printf("\n\n");
@@ -371,6 +370,11 @@ int main(int argc, char **argv)
             case 'm':
             {
                 break;    
+            }
+            case 'n':
+            {
+                change_nick(sess);
+                break;
             }
             case 'p':
             {
