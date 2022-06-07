@@ -175,7 +175,7 @@ int add_member(irc_session_t *s, const char *channel, const char *nick)
 
     if(strcmp(nick, search_ptr->handle) == 0)
     {
-        search_ptr->mode = mode; // Update mode if it has changed
+        search_ptr->mode = mode;
         return 0;
     }
 
@@ -447,7 +447,7 @@ char * get_input()
     size_t buffer_size = 0;
 
     getline(&input, &buffer_size, stdin);
-    input[strlen(input)-1] = '\0'; // Remove trailing newline
+    input[strlen(input)-1] = '\0';
 
     return input;
 }

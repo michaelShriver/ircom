@@ -64,9 +64,6 @@ int main(int argc, char **argv)
     /* Start output in the server buffer */
     ctx.buffer_read_ptr = ctx.server_buffer->curr;
 
-    /* Set initial nickwidth timestamp */
-    //ctx.nickwidth_set_at = time(NULL);
-
     /* Save terminal state */
     ioctl(0, TIOCGWINSZ, &ctx.ttysize);
     tcgetattr(0, &ctx.termstate);
@@ -139,7 +136,6 @@ int main(int argc, char **argv)
 
     /* On exit, clean up memory and reset terminal state */
     atexit(exit_cleanup);
-    //on_exit(exit_cleanup, sess);
 
     /* Initiate the IRC server connection */
     if (irc_connect(sess, server, ctx.port, 0, ctx.nick, ctx.username, ctx.realname))
@@ -344,6 +340,7 @@ int main(int argc, char **argv)
                 int fpstatus;
                 int output_timeout = 0;
 
+                tcsetattr(0, TCSANOW, &ctx.termstate);
                 ctx.output_wait = 1;
                 ctx.pager = popen("more", "w");
                 if (ctx.pager == NULL)
@@ -358,7 +355,6 @@ int main(int argc, char **argv)
                     output_timeout++;
                     sleep(1);
                 }
-                tcsetattr(0, TCSANOW, &ctx.termstate);
                 fpstatus = pclose(ctx.pager);
                 if (fpstatus == -1)
                 {

@@ -3,9 +3,6 @@
 /* Run the event handling loop in it's own thread */
 void *irc_event_loop(void *sess)
 {
-    //irc_session_t *s;
-    //s = sess;
-
     if (irc_run(sess))
     {
         fprintf (stderr, "Could not connect or I/O error: %s\r\n", irc_strerror (irc_errno(sess)));
@@ -382,12 +379,17 @@ void event_numeric (irc_session_t *session, unsigned int event, const char *orig
         }
         case 321:
         {
-            fprintf(ctx->pager, "\r\n        channel-name   #  modes/topic\r\n");
-            fprintf(ctx->pager, "--------------------------------------------------------------------------------\r\n");
+            ctx->chanlist_header = 0;
             break;
         }
         case 322:
         {
+            if (!ctx->chanlist_header)
+            {
+                fprintf(ctx->pager, "\r\n        channel-name   #  modes/topic\r\n");
+                fprintf(ctx->pager, "--------------------------------------------------------------------------------\r\n");
+                ctx->chanlist_header = 1;
+            }
            fprintf(ctx->pager, "%20s %3s  %s\r\n", params[1], params[2], params[3]); 
            break;
         }
@@ -474,7 +476,7 @@ void event_numeric (irc_session_t *session, unsigned int event, const char *orig
         }
         case 433:
         {
-            // Nick in use
+            /* Nick in use */
             size_t nicklen = sizeof(char)*(strlen(ctx->nick)+2);
             char *newnick = malloc(nicklen);
 
@@ -485,18 +487,18 @@ void event_numeric (irc_session_t *session, unsigned int event, const char *orig
             free(newnick);
             break;
         }
-        // Generic events handlers, dump to server buffer:
+        /* Generic events handlers, dump to server buffer: */
         case 372:
         {
-            // MOTD text
+            /* MOTD text */
         }
         case 375:
         {
-            // Start of MOTD
+            /* Start of MOTD */
         }
         case 376:
         {
-            // End of MOTD
+            /* End of MOTD */
             char *msgbuf = irc_color_strip_from_mirc(params[count-1]);
             ctx->server_buffer->curr = add_to_buffer(ctx->server_buffer, msgbuf);
             free(msgbuf);
@@ -504,26 +506,26 @@ void event_numeric (irc_session_t *session, unsigned int event, const char *orig
             print_new_messages(session);
             break;
         }
-        // To implement:
+        /* To implement: */
         case 403:
         {
-            // No such channel
+            /* No such channel */
         }
         case 442:
         {
-            // Not on channel
+            /* Not on channel */
         }
         case 461:
         {
-            // Need More Parameters
+            /* Need More Parameters */
         }
         case 466:
         {
-            // Chan ops needed
+            /* Chan ops needed */
         }
         case 476:
         {
-            // Bad channel mask
+            /* Bad channel mask */
         }
         default:
         {

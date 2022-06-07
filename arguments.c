@@ -42,7 +42,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
         }
         case ARGP_KEY_ARG:
         {
-            // Too many arguments, if your program expects only one argument.
+            /* Too many arguments */
             if(state->arg_num > 1)
                 argp_usage(state);
             arguments->args[state->arg_num] = arg;
@@ -50,7 +50,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
         }
         case ARGP_KEY_END:
         {
-            // Not enough arguments. if your program expects exactly one argument.
+            /* Not enough arguments */
             if(state->arg_num < 1)
                 argp_usage(state);
             break;

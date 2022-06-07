@@ -57,5 +57,6 @@ struct irc_ctx_t
     struct winsize ttysize;
     bool input_wait;
     bool output_wait;
+    bool chanlist_header;
     FILE *pager;
 };
