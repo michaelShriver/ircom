@@ -590,6 +590,24 @@ void peek_channel(irc_session_t *s)
     return;
 }
 
+void invite_user(irc_session_t *s)
+{
+    irc_ctx_t * ctx = irc_get_ctx(s);
+    char *nickbuf;
+    bufptr *active_channel = channel_buffer(s, ctx->active_channel);
+
+    if(active_channel == ctx->server_buffer)
+    {
+        printf("<you must be in a channel\r\n");
+        return;
+    }
+
+    printf("%-*s ", active_channel->nickwidth-11, ":user>");
+    nickbuf = get_input();
+    irc_cmd_invite(s, nickbuf, active_channel->channel);
+    free(nickbuf);
+}
+
 void exit_cleanup()
 {
     printf("Unlinking TTY ..\r\n");

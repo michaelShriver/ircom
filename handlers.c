@@ -147,6 +147,17 @@ void event_kick(irc_session_t *session, const char *event, const char *origin, c
     return;
 }
 
+void event_invite(irc_session_t *session, const char *event, const char *origin, const char **params, unsigned int count)
+{
+    char nickbuf[128];
+    irc_target_get_nick(origin, nickbuf, sizeof(nickbuf));
+
+    printf("<you have been yanked into %s by %s>\r\n", params[1], nickbuf);
+    irc_cmd_join(session, params[1], 0);
+    
+    return;
+}
+
 void event_part(irc_session_t *session, const char *event, const char *origin, const char **params, unsigned int count)
 {
     irc_ctx_t * ctx = irc_get_ctx(session);

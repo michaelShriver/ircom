@@ -28,6 +28,7 @@ void change_nick(irc_session_t *);
 void kick_user(irc_session_t *);
 void rewind_buffer(irc_session_t *, int);
 void peek_channel(irc_session_t *);
+void invite_user(irc_session_t *);
 void print_new_messages(irc_session_t *);
 void exit_cleanup();
 void reset_nicklist(irc_session_t *, char *);

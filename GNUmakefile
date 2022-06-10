@@ -1,5 +1,5 @@
 CC      = gcc
-CFLAGS  = # -g
+CFLAGS  = -g
 LIBS    = -lircclient -lpthread -lcrypto -lssl
 PREFIX  = /usr/local
 

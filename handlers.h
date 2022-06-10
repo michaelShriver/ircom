@@ -8,6 +8,7 @@ void event_join(irc_session_t *, const char *, const char *, const char **, unsi
 void event_part(irc_session_t *, const char *, const char *, const char **, unsigned int);
 void event_quit(irc_session_t *, const char *, const char *, const char **, unsigned int);
 void event_kick(irc_session_t *, const char *, const char *, const char **, unsigned int);
+void event_invite(irc_session_t *, const char *, const char *, const char **, unsigned int);
 void event_topic(irc_session_t *, const char *, const char *, const char **, unsigned int);
 void event_connect(irc_session_t *, const char *, const char *, const char **, unsigned int);
 void event_privmsg(irc_session_t *, const char *, const char *, const char **, unsigned int);

@@ -38,7 +38,7 @@ int main(int argc, char **argv)
     callbacks.event_channel = event_channel;
     callbacks.event_privmsg = event_privmsg;
     callbacks.event_notice = event_notice;
-    callbacks.event_invite = dump_event;
+    callbacks.event_invite = event_invite;
     callbacks.event_umode = dump_event;
     callbacks.event_ctcp_rep = dump_event;
     callbacks.event_ctcp_action = event_action;
@@ -328,6 +328,11 @@ int main(int argc, char **argv)
                 printf("To begin TALK MODE, press [SPACE]");
                 printf("\n\n");
 
+                break;
+            }
+            case 'i':
+            {
+                invite_user(sess);
                 break;
             }
             case 'k':
