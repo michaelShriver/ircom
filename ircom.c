@@ -344,7 +344,7 @@ int main(int argc, char **argv)
 
                 tcsetattr(0, TCSANOW, &ctx.termstate);
                 ctx.output_wait = 1;
-                ctx.pager = popen("more", "w");
+                ctx.pager = popen("less", "w");
                 if (ctx.pager == NULL)
                 {
                     fprintf(stderr, "Error opening pager\r\n");
