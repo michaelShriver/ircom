@@ -322,17 +322,14 @@ int main(int argc, char **argv)
                 printf("%-36s", "\e[33;1ms\e[0m - send private");
                 printf("\n  ");
                 printf("%-36s", "\e[33;1mw\e[0m - who is in the room");
+                printf("%-36s", "\e[33;1mY\e[0m - yank into room");
                 printf("%-36s", "\e[33;1m<\e[0m - surf rooms backward");
+                printf("\n\n");
                 printf("%-36s", "\e[33;1m>\e[0m - surf rooms forward");
                 printf("\n\n");
                 printf("To begin TALK MODE, press [SPACE]");
                 printf("\n\n");
 
-                break;
-            }
-            case 'i':
-            {
-                invite_user(sess);
                 break;
             }
             case 'k':
@@ -433,6 +430,11 @@ int main(int argc, char **argv)
                 reset_nicklist(sess, ctx.active_channel);
                 irc_cmd_names(sess, ctx.active_channel);
 
+                break;
+            }
+            case 'Y':
+            {
+                invite_user(sess);
                 break;
             }
             case '\r':
