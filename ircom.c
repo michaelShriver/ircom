@@ -207,6 +207,7 @@ int main(int argc, char **argv)
                 break;
             }
             case 'C':
+            case '/':
             {
                 char *input;
                 ctx.input_wait = 1;
@@ -302,30 +303,30 @@ int main(int argc, char **argv)
                 printf("irCOMMODE (c)2023 - Version .27");
                 printf("\n\n  ");
                 printf("%-36s", "\e[33;1mc\e[0m - clear");
-                printf("%-36s", "\e[33;1mC\e[0m - issue raw command");
                 printf("%-36s", "\e[33;1md\e[0m - dump out of ircom");
-                printf("\n  ");
                 printf("%-36s", "\e[33;1me\e[0m - emote");
+                printf("\n  ");
                 printf("%-36s", "\e[33;1mg\e[0m - goto a room");
                 printf("%-36s", "\e[33;1mh\e[0m - command help");
-                printf("\n  ");
                 printf("%-36s", "\e[33;1mk\e[0m - kick a user");
+                printf("\n  ");
                 printf("%-36s", "\e[33;1ml\e[0m - list open rooms");
                 printf("%-36s", "\e[33;1mn\e[0m - change nick");
-                printf("\n  ");
                 printf("%-36s", "\e[33;1mp\e[0m - peek into room");
+                printf("\n  ");
                 printf("%-36s", "\e[33;1mP\e[0m - leave current room");
                 printf("%-36s", "\e[33;1mq\e[0m - quit commode");
-                printf("\n  ");
                 printf("%-36s", "\e[33;1mr\e[0m - room history");
+                printf("\n  ");
                 printf("%-36s", "\e[33;1mR\e[0m - extended history");
                 printf("%-36s", "\e[33;1ms\e[0m - send private");
-                printf("\n  ");
                 printf("%-36s", "\e[33;1mw\e[0m - who is in the room");
+                printf("\n  ");
                 printf("%-36s", "\e[33;1mY\e[0m - yank into room");
                 printf("%-36s", "\e[33;1m<\e[0m - surf rooms backward");
-                printf("\n  ");
                 printf("%-36s", "\e[33;1m>\e[0m - surf rooms forward");
+                printf("\n  ");
+                printf("%-36s", "\e[33;1m/\e[0m - issue raw command");
                 printf("\n\n");
                 printf("To begin TALK MODE, press [SPACE]");
                 printf("\n\n");
