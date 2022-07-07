@@ -30,7 +30,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
             arguments->realname = arg;
             break;
         }
-        case 't':
+        case 'e':
         {
             arguments->enable_tls = 1;
             break;
