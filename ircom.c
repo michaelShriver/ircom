@@ -19,7 +19,7 @@ int main(int argc, char **argv)
     arguments.username = NULL;
     arguments.realname = NULL;
     arguments.enable_tls = 0;
-    arguments.noverify = 0;
+    arguments.verify = 0;
 
     /* Parse command line arguments */
     argp_parse(&argp, argc, argv, 0, 0, &arguments);
@@ -69,7 +69,7 @@ int main(int argc, char **argv)
     tcgetattr(0, &ctx.termstate);
     memcpy(&ctx.termstate_raw, &ctx.termstate, sizeof(ctx.termstate_raw));
 
-    if (arguments.noverify)
+    if (!arguments.verify)
     {
         irc_option_set(sess, LIBIRC_OPTION_SSL_NO_VERIFY);
     }

@@ -37,7 +37,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
         }
         case 'v':
         {
-            arguments->noverify = 1;
+            arguments->verify = 1;
             break;
         }
         case ARGP_KEY_ARG:

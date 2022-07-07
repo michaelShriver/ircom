@@ -9,15 +9,16 @@ The control scheme is modeled after SDF's [commode](https://sdf.org/?tutorials/c
 # Implemented commands:
 
         irCOMMODE (c)2023 - Version .27
-
-          c - clear                C - issue raw command    d - dump out of ircom
-          e - emote                g - goto a room          h - command help
-          k - kick a user          l - list open rooms      p - peek into room
+        
+          c - clear                d - dump out of ircom    e - emote
+          g - goto a room          h - command help         k - kick a user
+          l - list open rooms      n - change nick          p - peek into room
           P - leave current room   q - quit commode         r - room history
           R - extended history     s - send private         w - who is in the room
-          < - surf rooms backward  > - surf rooms forward
+          Y - yank into room       < - surf rooms backward  > - surf rooms forward
+          / - issue raw command
         
-         To begin TALK MODE, press [SPACE]
+        To begin TALK MODE, press [SPACE]
 
 # Installation
 
@@ -60,5 +61,5 @@ And then build ircom:
 
     Usage: ircom [-tv?V] [-n nick] [-p port] [-r real name] [-u username]
             [--nick=nick] [--port=port] [--realname=real name] [--use-tls]
-            [--username=username] [--noverify] [--help] [--usage] [--version]
+            [--username=username] [--verify] [--help] [--usage] [--version]
             server channel

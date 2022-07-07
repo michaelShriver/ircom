@@ -11,11 +11,11 @@ static char args_doc[] = "server channel";
 static struct argp_option options[] =
 {
     {"port", 'p', "port", 0, "Server port. Default: 6667"},
-    {"nick", 'n', "nick", 0, "Desired nickname. Default: computer username"},
-    {"username", 'u', "username", 0, "Username override"},
-    {"realname", 'r', "\"real name\"", 0, "Real name"},
+    {"nick", 'n', "nick", 0, "Nickname. Default: localhost username"},
+    {"username", 'u', "username", 0, "Username. Default: localhost username"},
+    {"realname", 'r', "\"real name\"", 0, "Real name. Default: localhost username"},
     {"use-tls", 't', 0, 0, "Enable TLS (Requires libircclient with built-in openssl support)"},
-    {"noverify", 'v', 0, 0, "Do not verify server certificate identity when using TLS"},
+    {"verify", 'v', 0, 0, "Verify server certificate identity when using TLS. Default: Do not verify server certificate"},
     {0}
 };
 
@@ -27,7 +27,7 @@ struct arguments
     char *username;
     char *realname;
     int enable_tls;
-    int noverify;
+    int verify;
 };
 
 error_t parse_opt(int, char *, struct argp_state*);
