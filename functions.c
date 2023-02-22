@@ -493,7 +493,7 @@ void rewind_buffer(irc_session_t *s, int lines)
 
         int fpstatus;
             
-        ctx->pager = popen("less", "w");
+        ctx->pager = popen("less -R", "w");
         if (ctx->pager == NULL)
         {
             fprintf(stderr, "Error opening pager\r\n");
